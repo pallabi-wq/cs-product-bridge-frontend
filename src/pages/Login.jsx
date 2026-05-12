@@ -1,35 +1,90 @@
-// Stand-in for SSO. In production, redirect to OIDC and store the resulting session.
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client.js';
 import { useAuth } from '../context/AuthContext.jsx';
 
 export default function Login() {
-  const [users, setUsers] = useState([]);
+  const [email, setEmail]       = useState('');
+  const [password, setPassword] = useState('');
+  const [showPw, setShowPw]     = useState(false);
+  const [error, setError]       = useState(null);
+  const [busy, setBusy]         = useState(false);
   const { login } = useAuth();
   const nav = useNavigate();
 
-  useEffect(() => { api.get('/api/users').then(setUsers).catch(() => setUsers([])); }, []);
-
-  const pick = (u) => { login(u); nav('/'); };
+  const submit = async (e) => {
+    e.preventDefault();
+    setError(null);
+    setBusy(true);
+    try {
+      const user = await api.post('/api/auth/login', { email, password });
+      login(user);
+      nav('/');
+    } catch (err) {
+      setError(err.message || 'Invalid email or password');
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
-    <div className="login-wrap">
-      <div className="card login-card">
-        <h1>Sign in</h1>
-        <p className="muted">
-          This dev login mimics SSO. Pick which seeded user you want to act as — your role
-          drives what you can do (CS raises requirements, Product reviews them, Admin manages
-          users). Swap this screen for Okta / Google / Microsoft when going to prod.
-        </p>
-        <div style={{ marginTop: 16 }}>
-          {users.length === 0 && <div className="muted">No users yet — run `npm run init-db` in the backend.</div>}
-          {users.map(u => (
-            <button key={u.id} className="user-pick" onClick={() => pick(u)}>
-              <div><strong>{u.name}</strong></div>
-              <div className="muted" style={{ fontSize: 12 }}>{u.email} · role: {u.role}</div>
-            </button>
-          ))}
+    <div className="login-page">
+      <div className="login-box">
+        <div className="login-brand">
+          <div className="login-brand-icon">🌉</div>
+          <h1>CS · Product Bridge</h1>
+          <p>Sign in to your workspace</p>
+        </div>
+
+        <form onSubmit={submit}>
+          <div className="field">
+            <label>Email address</label>
+            <input
+              type="email"
+              placeholder="you@company.com"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              autoFocus
+              required
+            />
+          </div>
+
+          <div className="field">
+            <label>Password</label>
+            <div className="pw-wrap">
+              <input
+                type={showPw ? 'text' : 'password'}
+                placeholder="••••••••"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                required
+              />
+              <button
+                type="button"
+                className="pw-toggle"
+                onClick={() => setShowPw(v => !v)}
+                tabIndex={-1}
+              >
+                {showPw ? '🙈' : '👁️'}
+              </button>
+            </div>
+          </div>
+
+          {error && <div className="error-msg">{error}</div>}
+
+          <button
+            type="submit"
+            className="btn btn-primary btn-full btn-lg"
+            disabled={busy}
+            style={{ marginTop: 8 }}
+          >
+            {busy ? 'Signing in…' : 'Sign in →'}
+          </button>
+        </form>
+
+        <div className="login-hint">
+          <strong>Demo credentials (password: <code>password</code>)</strong>
+          alex.admin@example.com · sam.cs@example.com · priya.product@example.com
         </div>
       </div>
     </div>

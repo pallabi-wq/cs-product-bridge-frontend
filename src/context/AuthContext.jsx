@@ -1,16 +1,19 @@
-// Auth context — stand-in for SSO during development.
-// Replace with a real session/OIDC-driven provider in production.
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useState } from 'react';
 
 const Ctx = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(() => JSON.parse(localStorage.getItem('cspb_user') || 'null'));
+  const [user, setUser] = useState(() =>
+    JSON.parse(localStorage.getItem('cspb_user') || 'null')
+  );
 
   const login = (u) => {
-    localStorage.setItem('cspb_user', JSON.stringify(u));
-    setUser(u);
+    // Strip password_hash before storing
+    const { password_hash, ...safe } = u;
+    localStorage.setItem('cspb_user', JSON.stringify(safe));
+    setUser(safe);
   };
+
   const logout = () => {
     localStorage.removeItem('cspb_user');
     setUser(null);
