@@ -544,79 +544,209 @@ function DetailPanel({ id, user, isTech, onClose, onRefresh }) {
 }
 
 // ─── Raise Modal ──────────────────────────────────────────
+const PRIO_OPTIONS = [
+  { value: 'Low',      label: 'Low',      color: '#6b7280', bg: '#f3f4f6', border: '#d1d5db' },
+  { value: 'Medium',   label: 'Medium',   color: '#2563eb', bg: '#eff6ff', border: '#93c5fd' },
+  { value: 'High',     label: 'High',     color: '#d97706', bg: '#fffbeb', border: '#fcd34d' },
+  { value: 'Critical', label: 'Critical', color: '#dc2626', bg: '#fef2f2', border: '#fca5a5' },
+];
+
 function RaiseModal({ onClose, onSuccess }) {
+  const fileRef = useRef(null);
+
   const [form, setForm] = useState({
-    title: '', description: '', customer_name: '', customer_segment: 'Mid-Market',
-    business_impact: '', category: 'Feature', use_case: '', priority: 'Medium',
+    title: '', use_case: '', priority: 'Medium',
+    customer_name: '', category: 'Feature',
   });
-  const [error, setError] = useState(null);
-  const [busy, setBusy]   = useState(false);
+  const [attachment, setAttachment] = useState(null);
+  const [dragging, setDragging]     = useState(false);
+  const [error, setError]           = useState(null);
+  const [busy, setBusy]             = useState(false);
   const up = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  const handleFile = (file) => {
+    if (!file) return;
+    setAttachment({ name: file.name, size: file.size, type: file.type });
+  };
+
+  const canSubmit = form.title.trim() && form.use_case.trim() && form.customer_name.trim() && !busy;
 
   const submit = async (e) => {
     e.preventDefault();
+    if (!canSubmit) return;
     setError(null); setBusy(true);
     try {
-      await api.post('/api/requirements', form);
+      await api.post('/api/requirements', {
+        title:            form.title.trim(),
+        description:      form.use_case.trim(),
+        use_case:         form.use_case.trim(),
+        customer_name:    form.customer_name.trim(),
+        customer_segment: 'Mid-Market',
+        category:         form.category,
+        priority:         form.priority,
+        business_impact:  '',
+      });
       onSuccess();
     } catch (e) { setError(e.message); } finally { setBusy(false); }
   };
 
   return (
-    <Modal title="Raise a Requirement" onClose={onClose} footer={
-      <>
-        <button className="btn" onClick={onClose}>Cancel</button>
-        <button className="btn btn-primary" onClick={submit} disabled={busy}>
-          {busy ? 'Submitting…' : 'Submit'}
-        </button>
-      </>
-    }>
-      <form onSubmit={submit}>
-        <div className="field">
-          <label>Title *</label>
-          <input value={form.title} onChange={e => up('title', e.target.value)} required placeholder="Short, descriptive title" />
-        </div>
-        <div className="field">
-          <label>Description *</label>
-          <textarea value={form.description} onChange={e => up('description', e.target.value)} required placeholder="What needs to be built or fixed?" />
-        </div>
-        <div className="row">
-          <div className="field">
-            <label>Customer / Account *</label>
-            <input value={form.customer_name} onChange={e => up('customer_name', e.target.value)} required placeholder="Acme Corp" />
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="raise-modal" onClick={e => e.stopPropagation()}>
+
+        {/* ── Header ── */}
+        <div className="raise-hd">
+          <div className="raise-hd-left">
+            <div className="raise-hd-icon">
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round">
+                <path d="M9 2v14M2 9h14"/>
+              </svg>
+            </div>
+            <div>
+              <div className="raise-hd-title">Raise a Requirement</div>
+              <div className="raise-hd-sub">Submit a product request for the tech team</div>
+            </div>
           </div>
-          <div className="field">
-            <label>Segment</label>
-            <select value={form.customer_segment} onChange={e => up('customer_segment', e.target.value)}>
-              {SEGMENTS.map(s => <option key={s}>{s}</option>)}
-            </select>
+          <button className="raise-close-btn" onClick={onClose}>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M2 2l10 10M12 2L2 12"/>
+            </svg>
+          </button>
+        </div>
+
+        {/* ── Body ── */}
+        <form className="raise-body" onSubmit={submit}>
+
+          {/* Title */}
+          <div className="raise-field">
+            <label className="raise-label">
+              Title <span className="raise-req">*</span>
+            </label>
+            <input
+              className="raise-input"
+              autoFocus
+              required
+              value={form.title}
+              onChange={e => up('title', e.target.value)}
+              placeholder="e.g. Add CSV export for customer reports"
+            />
           </div>
-        </div>
-        <div className="row">
-          <div className="field">
-            <label>Category</label>
-            <select value={form.category} onChange={e => up('category', e.target.value)}>
-              {CATEGORIES.map(c => <option key={c}>{c}</option>)}
-            </select>
+
+          {/* Use case */}
+          <div className="raise-field">
+            <label className="raise-label">
+              Use Case <span className="raise-req">*</span>
+            </label>
+            <textarea
+              className="raise-textarea"
+              required
+              value={form.use_case}
+              onChange={e => up('use_case', e.target.value)}
+              placeholder="Describe how customers will use this and the problem it solves…"
+            />
           </div>
-          <div className="field">
-            <label>Priority</label>
-            <select value={form.priority} onChange={e => up('priority', e.target.value)}>
-              {PRIORITIES.map(p => <option key={p}>{p}</option>)}
-            </select>
+
+          {/* Attachment */}
+          <div className="raise-field">
+            <label className="raise-label">Attachment</label>
+            {attachment ? (
+              <div className="raise-file-preview">
+                <div className="raise-file-icon">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#6366f1" strokeWidth="1.8" strokeLinecap="round"><path d="M9 2H4a1 1 0 00-1 1v10a1 1 0 001 1h8a1 1 0 001-1V6M9 2l4 4M9 2v4h4"/></svg>
+                </div>
+                <div className="raise-file-info">
+                  <div className="raise-file-name">{attachment.name}</div>
+                  <div className="raise-file-size">{(attachment.size / 1024).toFixed(0)} KB</div>
+                </div>
+                <button type="button" className="raise-file-remove" onClick={() => setAttachment(null)}>
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M2 2l8 8M10 2L2 10"/></svg>
+                </button>
+              </div>
+            ) : (
+              <div
+                className={`raise-dropzone${dragging ? ' raise-dropzone-active' : ''}`}
+                onDragOver={e => { e.preventDefault(); setDragging(true); }}
+                onDragLeave={() => setDragging(false)}
+                onDrop={e => { e.preventDefault(); setDragging(false); handleFile(e.dataTransfer.files[0]); }}
+                onClick={() => fileRef.current?.click()}
+              >
+                <div className="raise-dropzone-icon">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                  </svg>
+                </div>
+                <div className="raise-dropzone-text">
+                  <span className="raise-dropzone-link">Click to upload</span> or drag and drop
+                </div>
+                <div className="raise-dropzone-hint">PNG, JPG, PDF, XLSX — up to 10 MB</div>
+                <input ref={fileRef} type="file" style={{ display: 'none' }} accept=".png,.jpg,.jpeg,.pdf,.xlsx,.csv,.docx" onChange={e => handleFile(e.target.files[0])} />
+              </div>
+            )}
           </div>
-        </div>
-        <div className="field">
-          <label>Use case / scenario</label>
-          <textarea value={form.use_case} onChange={e => up('use_case', e.target.value)} placeholder="How would the customer use this?" style={{ minHeight: 64 }} />
-        </div>
-        <div className="field">
-          <label>Business impact</label>
-          <textarea value={form.business_impact} onChange={e => up('business_impact', e.target.value)} placeholder="Revenue risk, churn risk, upsell opportunity…" style={{ minHeight: 64 }} />
-        </div>
-        {error && <div className="error-msg">{error}</div>}
-      </form>
-    </Modal>
+
+          {/* Priority */}
+          <div className="raise-field">
+            <label className="raise-label">
+              Priority <span className="raise-req">*</span>
+            </label>
+            <div className="raise-prio-group">
+              {PRIO_OPTIONS.map(p => {
+                const active = form.priority === p.value;
+                return (
+                  <button
+                    key={p.value}
+                    type="button"
+                    className={`raise-prio-btn${active ? ' raise-prio-active' : ''}`}
+                    style={active ? { background: p.bg, color: p.color, borderColor: p.border } : {}}
+                    onClick={() => up('priority', p.value)}
+                  >
+                    <span className="raise-prio-dot" style={{ background: active ? p.color : '#d1d5db' }} />
+                    {p.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Customer + Category */}
+          <div className="raise-row">
+            <div className="raise-field" style={{ flex: 1 }}>
+              <label className="raise-label">
+                Customer / Account <span className="raise-req">*</span>
+              </label>
+              <input
+                className="raise-input"
+                required
+                value={form.customer_name}
+                onChange={e => up('customer_name', e.target.value)}
+                placeholder="Acme Corp"
+              />
+            </div>
+            <div className="raise-field" style={{ flex: 1 }}>
+              <label className="raise-label">Category</label>
+              <select className="raise-select" value={form.category} onChange={e => up('category', e.target.value)}>
+                {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+              </select>
+            </div>
+          </div>
+
+          {error && <div className="error-msg" style={{ marginBottom: 8 }}>{error}</div>}
+
+          {/* Submit */}
+          <button
+            type="submit"
+            className="raise-submit-btn"
+            disabled={!canSubmit}
+          >
+            {busy ? (
+              <><div className="raise-spinner" /> Submitting…</>
+            ) : (
+              <><svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M7.5 1v13M1 7.5h13"/></svg> Submit Requirement</>
+            )}
+          </button>
+        </form>
+      </div>
+    </div>
   );
 }
 
