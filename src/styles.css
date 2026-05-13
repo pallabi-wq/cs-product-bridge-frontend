@@ -1172,71 +1172,59 @@ textarea { min-height: 90px; resize: vertical; }
   padding: 20px 24px 32px;
 }
 
-/* 1 — status strip */
+/* ── Detail panel content ───────────────────────────────── */
 .detail-status-strip {
   display: flex;
   align-items: center;
   gap: 7px;
   flex-wrap: wrap;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
-.detail-strip-dot { color: var(--muted); opacity: 0.45; }
+.detail-strip-dot { color: var(--muted); opacity: 0.4; }
 .detail-raised-meta { font-size: 12.5px; color: var(--muted); }
 .detail-raised-meta strong { color: var(--text); font-weight: 600; }
 
-/* 2 — use case hero block */
-.detail-usecase-block {
-  background: #f8f9fc;
-  border: 1.5px solid var(--border);
-  border-radius: 12px;
-  padding: 16px 18px;
-  margin-bottom: 18px;
+.detail-divider { height: 1px; background: var(--border); margin: 16px 0; }
+
+/* Simple label + value rows */
+.detail-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0;
+  padding: 10px 0;
+  border-bottom: 1px solid #f1f3f5;
 }
-.detail-section-label {
-  font-size: 10.5px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+.detail-row:last-of-type { border-bottom: none; }
+.detail-row-label {
+  width: 100px;
+  flex-shrink: 0;
+  font-size: 11.5px;
+  font-weight: 600;
   color: var(--muted);
-  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
-.detail-usecase-text {
-  font-size: 14px;
+.detail-row-value {
+  font-size: 13.5px;
   color: var(--text);
-  line-height: 1.7;
+  font-weight: 500;
+}
+.detail-row-text {
+  font-size: 13.5px;
+  color: var(--text);
+  line-height: 1.65;
   white-space: pre-wrap;
-  margin: 0;
+  flex: 1;
 }
 
-/* 3 — priority / category / customer chips */
-.detail-chips-row {
+.detail-jira-info {
   display: flex;
+  align-items: center;
   gap: 10px;
   flex-wrap: wrap;
-  margin-bottom: 18px;
 }
-.detail-chip-group {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  background: #f8f9fc;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 10px 14px;
-  min-width: 88px;
-}
-.detail-chip-label {
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: var(--muted);
-}
-.detail-customer-chip {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text);
-}
+.detail-jira-meta { font-size: 12px; color: var(--muted); }
+
 .detail-category-tag {
   font-size: 11px;
   font-weight: 700;
@@ -1248,83 +1236,20 @@ textarea { min-height: 90px; resize: vertical; }
   text-transform: uppercase;
   letter-spacing: 0.05em;
   display: inline-block;
-  align-self: flex-start;
 }
 
-/* 4 — jira block */
-.detail-jira-block { margin-bottom: 18px; }
-.detail-jira-info {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-top: 6px;
-}
-.detail-jira-meta { font-size: 12px; color: var(--muted); }
-
-/* 6 — votes section */
-.detail-votes-section { margin-bottom: 8px; }
-.detail-votes-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 10px;
-}
-.detail-votes-list { display: flex; flex-direction: column; gap: 0; }
-.detail-no-votes {
-  font-size: 13px;
-  color: var(--muted);
-  font-style: italic;
-}
-.detail-vote-name  { font-size: 13px; font-weight: 600; color: var(--text); }
+.detail-no-votes { font-size: 13px; color: var(--muted); font-style: italic; }
+.detail-vote-name { font-size: 13px; font-weight: 600; color: var(--text); }
 .detail-vote-customer { font-size: 12.5px; color: var(--muted); }
 
-/* legacy — keep divider */
-.detail-meta-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-bottom: 8px;
-}
-.detail-raised-by {
-  font-size: 12.5px;
-  color: var(--muted);
-  margin-bottom: 18px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
+/* keep these for any legacy references */
+.detail-meta-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.detail-raised-by { font-size: 12.5px; color: var(--muted); margin-bottom: 18px; }
 .detail-raised-dot { opacity: 0.5; }
-.detail-divider {
-  height: 1px;
-  background: var(--border);
-  margin: 18px 0;
-}
-.detail-field { margin-bottom: 20px; }
-.detail-field-label {
-  font-size: 10.5px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: var(--muted);
-  margin-bottom: 7px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
+.detail-field { margin-bottom: 16px; }
+.detail-field-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); margin-bottom: 5px; }
 .detail-field-value { font-size: 13.5px; color: var(--text); }
-.detail-field-text {
-  font-size: 13.5px;
-  color: var(--text);
-  line-height: 1.65;
-  white-space: pre-wrap;
-  background: #fafbff;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 12px 14px;
-}
+.detail-field-text { font-size: 13.5px; color: var(--text); line-height: 1.65; white-space: pre-wrap; }
 
 /* Rejection block */
 .detail-reject-block {

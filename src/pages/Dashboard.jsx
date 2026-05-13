@@ -436,50 +436,49 @@ function DetailPanel({ id, user, isTech, onClose, onRefresh }) {
         {data && (
           <div className="detail-body">
 
-            {/* ── 1. STATUS STRIP ── */}
+            {/* Status + meta */}
             <div className="detail-status-strip">
               <StatusBadge status={data.status} />
               <span className="detail-strip-dot">·</span>
-              <span className="detail-raised-meta">
-                by <strong>{data.submitter_name}</strong>
-              </span>
+              <span className="detail-raised-meta">by <strong>{data.submitter_name}</strong></span>
               <span className="detail-strip-dot">·</span>
               <span className="detail-raised-meta">{data.created_at?.slice(0, 10)}</span>
             </div>
 
-            {/* ── 2. USE CASE — hero content ── */}
+            <div className="detail-divider" />
+
+            {/* Use case */}
             {data.use_case && (
-              <div className="detail-usecase-block">
-                <div className="detail-section-label">Use Case</div>
-                <p className="detail-usecase-text">{data.use_case}</p>
+              <div className="detail-row">
+                <div className="detail-row-label">Use Case</div>
+                <div className="detail-row-text">{data.use_case}</div>
               </div>
             )}
 
-            {/* ── 3. PRIORITY + CATEGORY + CUSTOMER chips row ── */}
-            <div className="detail-chips-row">
-              {/* Priority */}
-              <div className="detail-chip-group">
-                <span className="detail-chip-label">Priority</span>
-                <span className={`prio-badge prio-${data.current_priority}`}>{data.current_priority}</span>
-              </div>
-              {/* Category */}
-              <div className="detail-chip-group">
-                <span className="detail-chip-label">Category</span>
-                <span className="detail-category-tag">{data.category}</span>
-              </div>
-              {/* Customer */}
-              {data.customer_name && (
-                <div className="detail-chip-group">
-                  <span className="detail-chip-label">Customer</span>
-                  <span className="detail-customer-chip">{data.customer_name}</span>
-                </div>
-              )}
+            {/* Priority */}
+            <div className="detail-row">
+              <div className="detail-row-label">Priority</div>
+              <span className={`prio-badge prio-${data.current_priority}`}>{data.current_priority}</span>
             </div>
 
-            {/* ── 4. JIRA ticket (if linked) ── */}
+            {/* Category */}
+            <div className="detail-row">
+              <div className="detail-row-label">Category</div>
+              <span className="detail-row-value">{data.category}</span>
+            </div>
+
+            {/* Customer */}
+            {data.customer_name && (
+              <div className="detail-row">
+                <div className="detail-row-label">Customer</div>
+                <span className="detail-row-value">{data.customer_name}</span>
+              </div>
+            )}
+
+            {/* Jira */}
             {data.jira_ticket_key && (
-              <div className="detail-jira-block">
-                <div className="detail-section-label">Jira Ticket</div>
+              <div className="detail-row">
+                <div className="detail-row-label">Jira</div>
                 <div className="detail-jira-info">
                   <a href={data.jira_ticket_url} target="_blank" rel="noreferrer" className="jira-link">
                     {data.jira_ticket_key}
@@ -490,7 +489,7 @@ function DetailPanel({ id, user, isTech, onClose, onRefresh }) {
               </div>
             )}
 
-            {/* ── 5. REJECTION REASON ── */}
+            {/* Rejection reason */}
             {data.status === 'Rejected' && data.rejection_reason && (
               <div className="detail-reject-block">
                 <div className="detail-reject-block-label">
@@ -503,27 +502,26 @@ function DetailPanel({ id, user, isTech, onClose, onRefresh }) {
 
             <div className="detail-divider" />
 
-            {/* ── 6. VOTES ── */}
-            <div className="detail-votes-section">
-              <div className="detail-votes-header">
-                <span className="detail-section-label" style={{ marginBottom: 0 }}>Votes</span>
-                <span className="detail-vote-count-badge">{data.upvotes?.length ?? 0}</span>
+            {/* Votes */}
+            <div className="detail-row" style={{ alignItems: 'flex-start' }}>
+              <div className="detail-row-label" style={{ paddingTop: 2 }}>
+                Votes <span className="detail-vote-count-badge">{data.upvotes?.length ?? 0}</span>
               </div>
-              {(data.upvotes?.length ?? 0) === 0
-                ? <div className="detail-no-votes">No votes yet — be the first to back this!</div>
-                : <div className="detail-votes-list">
-                    {data.upvotes.map((v, i) => (
+              <div>
+                {(data.upvotes?.length ?? 0) === 0
+                  ? <span className="detail-no-votes">No votes yet</span>
+                  : data.upvotes.map((v, i) => (
                       <div key={i} className="detail-vote-item">
                         <span className="detail-vote-thumb">👍</span>
                         <span className="detail-vote-name">{v.user_name}</span>
-                        {v.customer_name && <span className="detail-vote-customer">· {v.customer_name}</span>}
+                        {v.customer_name && <span className="detail-vote-customer"> · {v.customer_name}</span>}
                       </div>
-                    ))}
-                  </div>
-              }
+                    ))
+                }
+              </div>
             </div>
 
-            {/* ── 7. TECH ACTIONS ── */}
+            {/* Tech actions */}
             {canAct && (
               <div className="detail-actions">
                 {!data.jira_ticket_key && (
