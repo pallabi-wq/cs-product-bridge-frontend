@@ -3,8 +3,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import NotificationsBell from './NotificationsBell.jsx';
 
 const PAGE_TITLES = {
-  '/': 'Dashboard',
-  '/raise': 'Raise a Requirement',
+  '/': 'Requirements',
   '/reports': 'Reports & Analytics',
   '/admin': 'Admin Panel',
 };
@@ -17,13 +16,12 @@ export default function Layout() {
 
   return (
     <div className="app">
-      {/* ── Sidebar ── */}
       <aside className="sidebar">
         <div className="sidebar-brand">
           <div className="sidebar-brand-icon">🌉</div>
           <div>
-            <div className="sidebar-brand-name">CS · Product</div>
-            <div className="sidebar-brand-sub">Bridge</div>
+            <div className="sidebar-brand-name">TagMango</div>
+            <div className="sidebar-brand-sub">CS · Product Bridge</div>
           </div>
         </div>
 
@@ -32,15 +30,8 @@ export default function Layout() {
 
           <NavLink to="/" end>
             <span className="nav-icon">📋</span>
-            Dashboard
+            Requirements
           </NavLink>
-
-          {(user.role === 'cs' || user.role === 'admin') && (
-            <NavLink to="/raise">
-              <span className="nav-icon">➕</span>
-              Raise Requirement
-            </NavLink>
-          )}
 
           <NavLink to="/reports">
             <span className="nav-icon">📊</span>
@@ -58,7 +49,6 @@ export default function Layout() {
           )}
         </nav>
 
-        {/* ── User section ── */}
         <div className="sidebar-user">
           <div className="sidebar-user-row">
             <div className="avatar">{initials}</div>
@@ -66,7 +56,7 @@ export default function Layout() {
               <div className="sidebar-user-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {user.name}
               </div>
-              <span className={`role-chip role-${user.role}`}>{user.role}</span>
+              <span className={`role-chip role-${user.role}`}>{user.role === 'tech' ? 'Tech' : user.role === 'cs' ? 'CS' : 'Admin'}</span>
             </div>
             <NotificationsBell />
           </div>
@@ -76,7 +66,6 @@ export default function Layout() {
         </div>
       </aside>
 
-      {/* ── Main content ── */}
       <div className="main">
         <header className="topbar">
           <span className="topbar-title">{title}</span>

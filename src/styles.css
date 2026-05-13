@@ -499,6 +499,110 @@ textarea { min-height: 90px; resize: vertical; }
 .notif-item:hover { background: #fafbff; }
 .notif-empty { padding: 24px 16px; color: var(--muted); text-align: center; font-size: 13px; }
 
+/* ── Dashboard header ───────────────────────────────────── */
+.dash-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  gap: 16px;
+}
+
+/* ── Status tabs ────────────────────────────────────────── */
+.tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 16px;
+  border-bottom: 2px solid var(--border);
+  padding-bottom: 0;
+}
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 16px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.14s;
+  white-space: nowrap;
+}
+.tab:hover { color: var(--text); }
+.tab-active { color: var(--primary); border-bottom-color: var(--primary); }
+.tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--bg);
+  color: var(--muted);
+}
+.tab-count-active { background: var(--primary-light); color: var(--primary); }
+
+/* ── Priority badge ─────────────────────────────────────── */
+.prio-badge {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.prio-badge.prio-Low      { background: #f3f4f6; color: #6b7280; }
+.prio-badge.prio-Medium   { background: #eff6ff; color: #2563eb; }
+.prio-badge.prio-High     { background: #fffbeb; color: #d97706; }
+.prio-badge.prio-Critical { background: #fef2f2; color: #dc2626; }
+
+/* ── Jira link ──────────────────────────────────────────── */
+.jira-link {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--primary);
+  text-decoration: none;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--primary-light);
+  display: inline-block;
+}
+.jira-link:hover { background: #c7d2fe; text-decoration: none; }
+
+/* ── Vote button ────────────────────────────────────────── */
+.vote-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border: 1.5px solid var(--border);
+  background: white;
+  border-radius: 20px;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all 0.14s;
+}
+.vote-btn:hover {
+  border-color: var(--primary);
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+/* ── Table row hover ────────────────────────────────────── */
+.req-row:hover td { background: #f9f8ff; }
+
 /* ── Progress bar (reports) ─────────────────────────────── */
 .progress-bar-track { height: 5px; background: var(--bg); border-radius: 3px; margin-top: 4px; overflow: hidden; }
 .progress-bar-fill  { height: 100%; background: var(--primary); border-radius: 3px; }
