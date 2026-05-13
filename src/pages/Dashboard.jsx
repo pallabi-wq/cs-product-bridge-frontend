@@ -241,28 +241,16 @@ function RequirementRow({ idx, req: r, user, isTech, onVote, onReject, onJira, o
   const canAct  = isTech && !['Rejected', 'Done'].includes(r.status);
   const voteCount = typeof r.upvotes === 'number' ? r.upvotes : (r.upvotes?.length ?? 0);
 
-  const [voteOpen, setVoteOpen] = useState(false);
-  const [customer, setCustomer] = useState('');
-  const [voting, setVoting]     = useState(false);
-  const [voted, setVoted]       = useState(false);
-  const inputRef = useRef(null);
-
-  const openVote = () => {
-    setVoteOpen(true);
-    setTimeout(() => inputRef.current?.focus(), 60);
-  };
+  const [voting, setVoting] = useState(false);
+  const [voted, setVoted]   = useState(false);
 
   const submitVote = async () => {
-    if (!customer.trim() || voting) return;
+    if (voting) return;
     setVoting(true);
-    await onVote(r.id, customer.trim());
+    await onVote(r.id, '');
     setVoted(true);
-    setVoteOpen(false);
-    setCustomer('');
     setVoting(false);
   };
-
-  const cancelVote = () => { setVoteOpen(false); setCustomer(''); };
 
   const reqNo = `REQ-${String(idx).padStart(3, '0')}`;
 
@@ -340,7 +328,10 @@ function RequirementRow({ idx, req: r, user, isTech, onVote, onReject, onJira, o
       {/* Vote */}
       <td className="vote-cell">
         {isOwn ? (
-          <span className="vote-own-tag">yours</span>
+          <div className="vote-own-wrap">
+            {voteCount > 0 && <span className="vote-own-count">👍 {voteCount}</span>}
+            <span className="vote-own-tag">yours</span>
+          </div>
         ) : voted ? (
           <div className="vote-done">
             <span className="vote-done-icon">👍</span>
@@ -348,37 +339,10 @@ function RequirementRow({ idx, req: r, user, isTech, onVote, onReject, onJira, o
           </div>
         ) : canVote ? (
           <div className="vote-wrap">
-            {!voteOpen ? (
-              <button className="vote-btn" onClick={openVote}>
-                <span className="vote-thumb">👍</span>
-                <span className="vote-label">{voteCount > 0 ? voteCount : 'Vote'}</span>
-              </button>
-            ) : (
-              <div className="vote-inline-wrap">
-                <input
-                  ref={inputRef}
-                  className="vote-customer-input"
-                  placeholder="Customer name…"
-                  value={customer}
-                  onChange={e => setCustomer(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') submitVote();
-                    if (e.key === 'Escape') cancelVote();
-                  }}
-                />
-                <div className="vote-inline-actions">
-                  <button
-                    className="vote-confirm-btn"
-                    onClick={submitVote}
-                    disabled={!customer.trim() || voting}
-                    title="Confirm vote"
-                  >
-                    {voting ? '…' : '✓'}
-                  </button>
-                  <button className="vote-cancel-btn" onClick={cancelVote} title="Cancel">✕</button>
-                </div>
-              </div>
-            )}
+            <button className="vote-btn" onClick={submitVote} disabled={voting}>
+              <span className="vote-thumb">👍</span>
+              <span className="vote-label">{voting ? '…' : voteCount > 0 ? voteCount : 'Vote'}</span>
+            </button>
           </div>
         ) : (
           <span className="vote-static">{voteCount > 0 ? `👍 ${voteCount}` : '—'}</span>
