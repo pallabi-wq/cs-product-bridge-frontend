@@ -147,7 +147,7 @@ export default function Dashboard() {
               <th>Title</th>
               <th style={{ width: 210 }}>Use Case</th>
               <th style={{ width: 95 }}>Priority</th>
-              <th style={{ width: 185 }}>Jira</th>
+              <th style={{ width: 185 }}>Status</th>
               <th style={{ width: 130, textAlign: 'center' }}>Vote</th>
               <th style={{ width: 52 }}></th>
             </tr>
@@ -281,12 +281,22 @@ function RequirementRow({ idx, req: r, user, isTech, onVote, onReject, onJira, o
         <span className={`prio-badge prio-${r.current_priority}`}>{r.current_priority}</span>
       </td>
 
-      {/* Jira */}
+      {/* Status / Jira */}
       <td>
-        {r.jira_ticket_key ? (
+        {r.status === 'Rejected' ? (
+          /* ── Rejected state ── */
+          <button className="status-rejected-cell" onClick={onView}>
+            <span className="status-rejected-badge">
+              <svg width="9" height="9" viewBox="0 0 9 9" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M1.5 1.5l6 6M7.5 1.5l-6 6"/></svg>
+              Rejected
+            </span>
+            <span className="status-view-reason">View reason →</span>
+          </button>
+        ) : r.jira_ticket_key ? (
+          /* ── Has Jira ticket ── */
           <div className="jira-linked">
             <a href={r.jira_ticket_url} target="_blank" rel="noreferrer" className="jira-link">
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M6 0L7.5 4.5H12L8.25 7.25 9.75 12 6 9.25 2.25 12 3.75 7.25 0 4.5H4.5L6 0Z" opacity=".7"/></svg>
+              <svg width="11" height="11" viewBox="0 0 11 11" fill="#2563eb"><rect width="11" height="11" rx="2.5" fill="#2563eb"/><path d="M5.5 2.5v6M2.5 5.5h6" stroke="white" strokeWidth="1.6" strokeLinecap="round"/></svg>
               {r.jira_ticket_key}
             </a>
             {r.jira_assignee && <div className="jira-assignee">👤 {r.jira_assignee}</div>}
@@ -295,6 +305,7 @@ function RequirementRow({ idx, req: r, user, isTech, onVote, onReject, onJira, o
             )}
           </div>
         ) : isTech ? (
+          /* ── Tech actions ── */
           <div className="jira-action-group">
             <button className="jira-chip jira-chip-create" onClick={() => onJira('create')}>
               <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M5.5 1v9M1 5.5h9"/></svg>
@@ -616,28 +627,48 @@ function RejectModal({ id, onClose, onSuccess }) {
   const [busy, setBusy]     = useState(false);
 
   const submit = async () => {
+    if (!reason.trim()) return;
     setBusy(true); setError(null);
     try {
-      await api.post(`/api/requirements/${id}/reject`, { reason });
+      await api.post(`/api/requirements/${id}/reject`, { reason: reason.trim() });
       onSuccess();
     } catch (e) { setError(e.message); } finally { setBusy(false); }
   };
+
+  const canSubmit = reason.trim().length > 0 && !busy;
 
   return (
     <Modal title="Reject Requirement" onClose={onClose} footer={
       <>
         <button className="btn" onClick={onClose}>Cancel</button>
-        <button className="btn btn-danger" onClick={submit} disabled={reason.trim().length < 5 || busy}>
-          {busy ? 'Rejecting…' : 'Reject'}
+        <button
+          className="btn btn-danger"
+          onClick={submit}
+          disabled={!canSubmit}
+          style={canSubmit ? {} : { opacity: 0.4 }}
+        >
+          {busy ? 'Rejecting…' : '✕ Reject'}
         </button>
       </>
     }>
-      <p className="muted text-sm" style={{ marginBottom: 14 }}>
-        Provide a reason — the submitter will be notified.
-      </p>
-      <div className="field">
-        <label>Reason *</label>
-        <textarea autoFocus value={reason} onChange={e => setReason(e.target.value)} placeholder="Why is this being rejected?" />
+      <div className="reject-modal-warning">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#dc2626" strokeWidth="1.8" strokeLinecap="round"><circle cx="8" cy="8" r="6.5"/><path d="M8 5v3M8 10.5v.5"/></svg>
+        This will permanently close the requirement. The submitter will be notified.
+      </div>
+      <div className="field" style={{ marginTop: 16 }}>
+        <label>Rejection reason <span style={{ color: '#dc2626' }}>*</span></label>
+        <textarea
+          autoFocus
+          value={reason}
+          onChange={e => setReason(e.target.value)}
+          placeholder="Explain why this is being rejected…"
+          style={{ minHeight: 100 }}
+        />
+        {reason.trim().length > 0 && (
+          <div style={{ fontSize: 11, color: '#6b7280', marginTop: 4 }}>
+            {reason.trim().length} characters
+          </div>
+        )}
       </div>
       {error && <div className="error-msg">{error}</div>}
     </Modal>
