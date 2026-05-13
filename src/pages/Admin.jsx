@@ -18,6 +18,7 @@ export default function Admin() {
   const [newEmail, setNewEmail] = useState('');
   const [newRole,  setNewRole]  = useState('cs');
   const [adding,   setAdding]   = useState(false);
+  const [search,   setSearch]   = useState('');
 
   const flash = (msg, isErr = false) => {
     if (isErr) { setError(msg);   setTimeout(() => setError(null),   4500); }
@@ -49,6 +50,10 @@ export default function Admin() {
   };
 
   const webhookUrl = `https://xkbgloaanzirzasldwro.supabase.co/functions/v1/api/api/webhooks/jira?secret=changeme`;
+  const q = search.trim().toLowerCase();
+  const filtered = q
+    ? users.filter(u => u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q) || u.role.includes(q))
+    : users;
   const counts = {
     cs:    users.filter(u => u.role === 'cs').length,
     tech:  users.filter(u => u.role === 'tech').length,
@@ -105,10 +110,31 @@ export default function Admin() {
           <div className="adm-add-hint">They'll be asked to set their own password the first time they log in.</div>
         </div>
 
+        {/* Search */}
+        {users.length > 0 && (
+          <div className="adm-search-wrap">
+            <span className="adm-search-ico">🔍</span>
+            <input
+              className="adm-search-input"
+              type="text"
+              placeholder="Search by name, email or role…"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+            {search && (
+              <button className="adm-search-clear" onClick={() => setSearch('')} title="Clear">✕</button>
+            )}
+          </div>
+        )}
+
         {/* Member rows */}
         <div className="adm-members">
-          {users.length === 0 && <div className="adm-empty">No members yet.</div>}
-          {users.map(u => {
+          {filtered.length === 0 && (
+            <div className="adm-empty">
+              {users.length === 0 ? 'No members yet.' : `No members match "${search}".`}
+            </div>
+          )}
+          {filtered.map(u => {
             const initials = u.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
             return (
               <div key={u.id} className="adm-member-row">
