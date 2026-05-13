@@ -2,13 +2,12 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import NotificationsBell from './NotificationsBell.jsx';
 
-const PAGE_TITLES = {
-  '/':        { title: 'Requirements',       sub: 'Track and prioritise product requests' },
-  '/reports': { title: 'Reports',            sub: 'Analytics and insights' },
-  '/admin':   { title: 'Admin Panel',        sub: 'Team members and integrations' },
+const PAGE_META = {
+  '/':        { title: 'Requirements',  sub: 'Track and prioritise product requests' },
+  '/reports': { title: 'Reports',       sub: 'Analytics and insights' },
+  '/admin':   { title: 'Admin Panel',   sub: 'Team members and integrations' },
 };
 
-// ── SVG nav icons ──────────────────────────────────────────
 const IconReq = () => (
   <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
     <rect x="2" y="2" width="12" height="12" rx="2"/>
@@ -30,14 +29,18 @@ const IconAdmin = () => (
 export default function Layout() {
   const { user, logout } = useAuth();
   const loc = useLocation();
-  const page = PAGE_TITLES[loc.pathname] || { title: 'Requirement Detail', sub: '' };
+  const page = PAGE_META[loc.pathname] || { title: 'Requirement Detail', sub: '' };
   const initials = user.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+
+  const isCS = user.role === 'cs' || user.role === 'admin';
+  const isReqPage = loc.pathname === '/';
+
+  const handleRaise = () => window.dispatchEvent(new CustomEvent('raise-requirement'));
 
   return (
     <div className="app">
       {/* ── Sidebar ──────────────────────────────────────── */}
       <aside className="sidebar">
-        {/* Brand */}
         <div className="sidebar-brand">
           <div className="sidebar-brand-icon">🌉</div>
           <div>
@@ -46,32 +49,24 @@ export default function Layout() {
           </div>
         </div>
 
-        {/* Nav */}
         <nav className="sidebar-nav">
           <div className="sidebar-section-label">Menu</div>
-
           <NavLink to="/" end>
-            <span className="nav-icon"><IconReq /></span>
-            Requirements
+            <span className="nav-icon"><IconReq /></span>Requirements
           </NavLink>
-
           <NavLink to="/reports">
-            <span className="nav-icon"><IconReports /></span>
-            Reports
+            <span className="nav-icon"><IconReports /></span>Reports
           </NavLink>
-
           {user.role === 'admin' && (
             <>
               <div className="sidebar-section-label">Administration</div>
               <NavLink to="/admin">
-                <span className="nav-icon"><IconAdmin /></span>
-                Admin Panel
+                <span className="nav-icon"><IconAdmin /></span>Admin Panel
               </NavLink>
             </>
           )}
         </nav>
 
-        {/* User */}
         <div className="sidebar-user">
           <div className="sidebar-user-row">
             <div className="avatar">{initials}</div>
@@ -99,6 +94,15 @@ export default function Layout() {
             <div className="topbar-title">{page.title}</div>
             {page.sub && <div className="topbar-sub">{page.sub}</div>}
           </div>
+          {/* Raise Requirement lives in the topbar */}
+          {isReqPage && isCS && (
+            <button className="btn btn-primary topbar-raise-btn" onClick={handleRaise}>
+              <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                <path d="M6.5 1v11M1 6.5h11"/>
+              </svg>
+              Raise Requirement
+            </button>
+          )}
         </header>
         <div className="content">
           <Outlet />

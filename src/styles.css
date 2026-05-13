@@ -381,7 +381,7 @@ h3 { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacin
 /* ── Table ──────────────────────────────────────────────── */
 .table-wrap {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1.5px solid #d8dce3;
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
   overflow: hidden;
@@ -390,18 +390,18 @@ table { width: 100%; border-collapse: collapse; }
 th {
   text-align: left;
   padding: 11px 16px;
-  background: #fafbfc;
-  border-bottom: 1px solid var(--border);
+  background: #f4f6f9;
+  border-bottom: 1.5px solid #d8dce3;
   font-weight: 600;
-  font-size: 11px;
+  font-size: 10.5px;
   text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: var(--muted);
+  letter-spacing: 0.09em;
+  color: #7c8494;
   white-space: nowrap;
 }
-td { padding: 13px 16px; border-bottom: 1px solid #f1f3f5; vertical-align: middle; }
+td { padding: 13px 16px; border-bottom: 1px solid #eaecf0; vertical-align: middle; }
 tr:last-child td { border-bottom: none; }
-tr:hover td { background: #fafbff; }
+tr:hover td { background: #f8f9ff; }
 
 /* ── Filters ────────────────────────────────────────────── */
 .filters {
@@ -617,20 +617,13 @@ textarea { min-height: 90px; resize: vertical; }
 .notif-item:hover { background: #fafbff; }
 .notif-empty { padding: 24px 16px; color: var(--muted); text-align: center; font-size: 13px; }
 
-/* ── Dashboard header ───────────────────────────────────── */
-.dash-header {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
+/* ── Dashboard toolbar ──────────────────────────────────── */
+.dash-toolbar {
   margin-bottom: 20px;
-  gap: 16px;
 }
-.dash-header-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
+/* keep old header classes as no-ops in case used elsewhere */
+.dash-header { display: none; }
+.dash-header-right { display: none; }
 
 /* ── Search bar (requirements page) ────────────────────── */
 .req-search-wrap {
@@ -640,9 +633,10 @@ textarea { min-height: 90px; resize: vertical; }
   background: #fff;
   border: 1.5px solid var(--border);
   border-radius: 10px;
-  padding: 7px 12px;
-  width: 230px;
+  padding: 9px 14px;
+  width: 100%;
   transition: border-color 0.15s, box-shadow 0.15s;
+  box-shadow: var(--shadow-sm);
 }
 .req-search-wrap:focus-within {
   border-color: var(--primary);
@@ -685,8 +679,8 @@ textarea { min-height: 90px; resize: vertical; }
 /* ── Stat cards ─────────────────────────────────────────── */
 .stat-cards {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
   margin-bottom: 24px;
 }
 .stat-card {
@@ -764,13 +758,21 @@ textarea { min-height: 90px; resize: vertical; }
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
 }
-.req-table td { padding: 14px 16px; border-bottom: 1px solid #f0f2f5; vertical-align: middle; }
+.req-table td { padding: 14px 16px; border-bottom: 1px solid #eaecf0; vertical-align: middle; }
 
-.req-no {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--muted);
-  text-align: center;
+.req-no { white-space: nowrap; }
+.req-no-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #6366f1;
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+  padding: 3px 8px;
+  border-radius: 6px;
+  letter-spacing: 0.03em;
+  font-family: "SF Mono", "Fira Code", monospace;
 }
 .req-poc-name    { font-size: 13px; font-weight: 600; color: var(--text); letter-spacing: -0.01em; }
 .req-poc-customer { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
@@ -790,7 +792,90 @@ textarea { min-height: 90px; resize: vertical; }
 }
 .req-title-btn:hover { color: var(--primary); }
 .req-usecase { font-size: 12.5px; color: var(--text-secondary); line-height: 1.5; }
-.jira-actions { display: flex; flex-direction: column; gap: 5px; align-items: flex-start; }
+
+/* ── Jira action chips ──────────────────────────────────── */
+.jira-action-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  align-items: center;
+}
+.jira-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 9px;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.14s;
+  white-space: nowrap;
+  border: 1.5px solid;
+  letter-spacing: -0.01em;
+}
+.jira-chip-create {
+  background: #eef2ff;
+  color: #4f46e5;
+  border-color: #c7d2fe;
+}
+.jira-chip-create:hover {
+  background: #4f46e5;
+  color: white;
+  border-color: #4f46e5;
+  box-shadow: 0 2px 8px rgba(79,70,229,0.25);
+}
+.jira-chip-link {
+  background: #f8fafc;
+  color: var(--text-secondary);
+  border-color: #d1d5db;
+}
+.jira-chip-link:hover {
+  background: #f1f5f9;
+  color: var(--text);
+  border-color: #94a3b8;
+}
+.jira-chip-reject {
+  background: #fff5f5;
+  color: #dc2626;
+  border-color: #fecaca;
+}
+.jira-chip-reject:hover {
+  background: #dc2626;
+  color: white;
+  border-color: #dc2626;
+}
+
+/* ── Jira linked state ──────────────────────────────────── */
+.jira-linked { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+.jira-assignee { font-size: 11.5px; color: var(--muted); }
+.jira-reject-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  color: #dc2626;
+  background: #fff5f5;
+  border: 1.5px solid #fecaca;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.14s;
+}
+.jira-reject-chip:hover { background: #dc2626; color: white; border-color: #dc2626; }
+
+/* ── Topbar raise button ────────────────────────────────── */
+.topbar-raise-btn {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 16px;
+}
+
+.jira-actions { display: none; }
 
 .req-row { transition: background 0.1s; }
 .req-row:hover td { background: #fafbff; }

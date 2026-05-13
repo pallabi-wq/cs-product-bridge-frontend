@@ -13,10 +13,9 @@ const OPEN_STATUSES = ['New', 'Under Review', 'Accepted - In Backlog', 'Accepted
 const truncate = (s, n = 70) => s && s.length > n ? s.slice(0, n) + '…' : (s || '—');
 
 const STAT_CARDS = [
-  { key: 'all',      label: 'Total',    desc: 'All requirements', color: '#6366f1', bg: '#f5f3ff', border: '#c4b5fd', dot: '#6366f1' },
-  { key: 'open',     label: 'Open',     desc: 'Active & in review', color: '#2563eb', bg: '#eff6ff', border: '#93c5fd', dot: '#3b82f6' },
-  { key: 'resolved', label: 'Resolved', desc: 'Completed & shipped', color: '#059669', bg: '#ecfdf5', border: '#6ee7b7', dot: '#10b981' },
-  { key: 'rejected', label: 'Rejected', desc: 'Closed without action', color: '#dc2626', bg: '#fef2f2', border: '#fca5a5', dot: '#ef4444' },
+  { key: 'open',     label: 'Open',     desc: 'Active & in review',   color: '#2563eb', bg: '#eff6ff', border: '#93c5fd', dot: '#3b82f6' },
+  { key: 'resolved', label: 'Resolved', desc: 'Completed & shipped',  color: '#059669', bg: '#ecfdf5', border: '#6ee7b7', dot: '#10b981' },
+  { key: 'rejected', label: 'Rejected', desc: 'Closed without action',color: '#dc2626', bg: '#fef2f2', border: '#fca5a5', dot: '#ef4444' },
 ];
 
 // ─── main component ───────────────────────────────────────
@@ -28,7 +27,7 @@ export default function Dashboard() {
   const [rows, setRows]       = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState(null);
-  const [activeTab, setActiveTab] = useState('all');
+  const [activeTab, setActiveTab] = useState('open');
   const [search, setSearch]   = useState('');
   const [detailId, setDetailId] = useState(null);
 
@@ -48,7 +47,10 @@ export default function Dashboard() {
   useEffect(() => {
     load();
     const t = setInterval(() => load(true), 30000);
-    return () => clearInterval(t);
+    // Listen for Raise Requirement trigger from topbar
+    const handler = () => setRaiseOpen(true);
+    window.addEventListener('raise-requirement', handler);
+    return () => { clearInterval(t); window.removeEventListener('raise-requirement', handler); };
   }, []);
 
   const tabCounts = {
@@ -91,30 +93,21 @@ export default function Dashboard() {
 
   return (
     <>
-      {/* ── Header ─────────────────────────────────────────── */}
-      <div className="dash-header">
-        <div />
-        <div className="dash-header-right">
-          <div className="req-search-wrap">
-            <svg className="req-search-ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="8.5" cy="8.5" r="5.5"/><path d="M15 15l-3-3"/>
-            </svg>
-            <input
-              className="req-search-input"
-              type="text"
-              placeholder="Search requirements…"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-            />
-            {search && (
-              <button className="req-search-clear" onClick={() => setSearch('')}>✕</button>
-            )}
-          </div>
-          <button className="btn btn-sm" onClick={() => api.downloadCsv({})}>⬇ Export</button>
-          {isCS && (
-            <button className="btn btn-primary" onClick={() => setRaiseOpen(true)}>
-              ✦ Raise Requirement
-            </button>
+      {/* ── Search toolbar ─────────────────────────────────── */}
+      <div className="dash-toolbar">
+        <div className="req-search-wrap">
+          <svg className="req-search-ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="8.5" cy="8.5" r="5.5"/><path d="M15 15l-3-3"/>
+          </svg>
+          <input
+            className="req-search-input"
+            type="text"
+            placeholder="Search by title, customer, POC…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+          {search && (
+            <button className="req-search-clear" onClick={() => setSearch('')}>✕</button>
           )}
         </div>
       </div>
@@ -149,7 +142,7 @@ export default function Dashboard() {
         <table className="req-table">
           <thead>
             <tr>
-              <th style={{ width: 48 }}>No.</th>
+              <th style={{ width: 100 }}>Req No.</th>
               <th style={{ width: 150 }}>POC</th>
               <th>Title</th>
               <th style={{ width: 210 }}>Use Case</th>
@@ -257,10 +250,14 @@ function RequirementRow({ idx, req: r, user, isTech, onVote, onReject, onJira, o
 
   const cancelVote = () => { setVoteOpen(false); setCustomer(''); };
 
+  const reqNo = `REQ-${String(idx).padStart(3, '0')}`;
+
   return (
     <tr className="req-row">
       {/* No. */}
-      <td className="req-no">{idx}</td>
+      <td className="req-no">
+        <span className="req-no-badge">{reqNo}</span>
+      </td>
 
       {/* POC */}
       <td>
@@ -287,25 +284,35 @@ function RequirementRow({ idx, req: r, user, isTech, onVote, onReject, onJira, o
       {/* Jira */}
       <td>
         {r.jira_ticket_key ? (
-          <div>
+          <div className="jira-linked">
             <a href={r.jira_ticket_url} target="_blank" rel="noreferrer" className="jira-link">
-              🔗 {r.jira_ticket_key}
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M6 0L7.5 4.5H12L8.25 7.25 9.75 12 6 9.25 2.25 12 3.75 7.25 0 4.5H4.5L6 0Z" opacity=".7"/></svg>
+              {r.jira_ticket_key}
             </a>
-            {r.jira_assignee && (
-              <div className="muted text-sm" style={{ marginTop: 3 }}>👤 {r.jira_assignee}</div>
-            )}
+            {r.jira_assignee && <div className="jira-assignee">👤 {r.jira_assignee}</div>}
             {canAct && (
-              <button className="btn btn-sm btn-danger" style={{ marginTop: 6 }} onClick={onReject}>✕ Reject</button>
+              <button className="jira-reject-chip" onClick={onReject}>✕ Reject</button>
             )}
           </div>
         ) : isTech ? (
-          <div className="jira-actions">
-            <button className="btn btn-sm btn-primary" onClick={() => onJira('create')}>+ Create Jira</button>
-            <button className="btn btn-sm" onClick={() => onJira('link')}>🔗 Link Jira</button>
-            {canAct && <button className="btn btn-sm btn-danger" onClick={onReject}>✕ Reject</button>}
+          <div className="jira-action-group">
+            <button className="jira-chip jira-chip-create" onClick={() => onJira('create')}>
+              <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M5.5 1v9M1 5.5h9"/></svg>
+              Create
+            </button>
+            <button className="jira-chip jira-chip-link" onClick={() => onJira('link')}>
+              <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M4 7L7 4M3 5a2 2 0 100-4 2 2 0 000 4M8 10a2 2 0 100-4 2 2 0 000 4"/></svg>
+              Link
+            </button>
+            {canAct && (
+              <button className="jira-chip jira-chip-reject" onClick={onReject}>
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M2 2l6 6M8 2l-6 6"/></svg>
+                Reject
+              </button>
+            )}
           </div>
         ) : (
-          <span className="muted">—</span>
+          <span className="muted text-sm">—</span>
         )}
       </td>
 
