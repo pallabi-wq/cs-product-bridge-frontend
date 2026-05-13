@@ -113,17 +113,19 @@ export default function Admin() {
         {/* Search */}
         {users.length > 0 && (
           <div className="adm-search-wrap">
-            <span className="adm-search-ico">🔍</span>
-            <input
-              className="adm-search-input"
-              type="text"
-              placeholder="Search by name, email or role…"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-            />
-            {search && (
-              <button className="adm-search-clear" onClick={() => setSearch('')} title="Clear">✕</button>
-            )}
+            <div className="adm-search-inner">
+              <span className="adm-search-ico">🔍</span>
+              <input
+                className="adm-search-input"
+                type="text"
+                placeholder="Search by name, email or role…"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+              />
+              {search && (
+                <button className="adm-search-clear" onClick={() => setSearch('')} title="Clear">✕</button>
+              )}
+            </div>
           </div>
         )}
 
