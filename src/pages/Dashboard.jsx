@@ -276,15 +276,11 @@ function RequirementRow({ idx, req: r, user, isTech, onVote, onReject, onJira, o
       {/* POC */}
       <td>
         <div className="req-poc-name">{r.submitter_name}</div>
-        <div className="req-poc-customer">{r.customer_name}</div>
       </td>
 
       {/* Title */}
       <td>
         <button className="req-title-btn" onClick={onView}>{r.title}</button>
-        <div style={{ marginTop: 5 }}>
-          <StatusBadge status={r.status} />
-        </div>
       </td>
 
       {/* Use case */}
