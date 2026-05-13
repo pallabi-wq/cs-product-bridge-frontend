@@ -329,7 +329,7 @@ function RequirementRow({ idx, req: r, user, isTech, onVote, onReject, onJira, o
       <td className="vote-cell">
         {isOwn ? (
           <div className="vote-own-wrap">
-            {voteCount > 0 && <span className="vote-own-count">👍 {voteCount}</span>}
+            <span className="vote-own-count">👍 {voteCount}</span>
             <span className="vote-own-tag">yours</span>
           </div>
         ) : voted ? (
