@@ -1,236 +1,191 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api/client.js';
+import { useAuth } from '../context/AuthContext.jsx';
+
+function nameFromEmail(email) {
+  return email.split('@')[0]
+    .replace(/[._-]+/g, ' ')
+    .replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function generatePassword() {
+  const chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  let pw = '';
+  for (let i = 0; i < 10; i++) pw += chars[Math.floor(Math.random() * chars.length)];
+  return pw + '@1';
+}
+
+const ROLE_LABELS = { cs: 'CS', tech: 'Tech', admin: 'Admin' };
 
 export default function Admin() {
-  const [users, setUsers]       = useState([]);
-  const [projects, setProjects] = useState([]);
-  const [error, setError]       = useState(null);
-  const [success, setSuccess]   = useState(null);
+  const { user: me } = useAuth();
+  const [users, setUsers]     = useState([]);
+  const [error, setError]     = useState(null);
+  const [success, setSuccess] = useState(null);
+  const [newEmail, setNewEmail] = useState('');
+  const [newRole,  setNewRole]  = useState('cs');
+  const [adding,   setAdding]   = useState(false);
 
-  const [newUser, setNewUser] = useState({ name: '', email: '', role: 'cs', password: '' });
-  const [newProj, setNewProj] = useState({ key: '', name: '', is_default: false });
-  const [showPw, setShowPw]   = useState(false);
-
-  const flash = (msg) => { setSuccess(msg); setTimeout(() => setSuccess(null), 3500); };
+  const flash = (msg, isErr = false) => {
+    if (isErr) { setError(msg);   setTimeout(() => setError(null),   4500); }
+    else        { setSuccess(msg); setTimeout(() => setSuccess(null), 9000); }
+  };
 
   const load = async () => {
-    setError(null);
-    try {
-      const [u, p] = await Promise.all([
-        api.get('/api/users'),
-        api.get('/api/users/jira-projects'),
-      ]);
-      setUsers(u);
-      setProjects(p);
-    } catch (e) { setError(e.message); }
+    try { setUsers(await api.get('/api/users')); }
+    catch (e) { flash(e.message, true); }
   };
   useEffect(() => { load(); }, []);
 
   const addUser = async (e) => {
     e.preventDefault();
-    setError(null);
+    setAdding(true);
+    const tempPw = generatePassword();
     try {
-      await api.post('/api/users', newUser);
-      setNewUser({ name: '', email: '', role: 'cs', password: '' });
-      flash('Team member added successfully.');
+      await api.post('/api/users', { name: nameFromEmail(newEmail), email: newEmail, role: newRole, password: tempPw });
+      setNewEmail(''); setNewRole('cs');
+      flash(`Member added — temporary password: ${tempPw}`);
       load();
-    } catch (e) { setError(e.message); }
-  };
-
-  const addProj = async (e) => {
-    e.preventDefault();
-    setError(null);
-    try {
-      await api.post('/api/users/jira-projects', newProj);
-      setNewProj({ key: '', name: '', is_default: false });
-      flash('Jira project saved.');
-      load();
-    } catch (e) { setError(e.message); }
+    } catch (e) { flash(e.message, true); }
+    setAdding(false);
   };
 
   const deleteUser = async (id, name) => {
     if (!confirm(`Remove ${name} from the team?`)) return;
-    try {
-      await api.del(`/api/users/${id}`);
-      load();
-    } catch (e) { setError(e.message); }
+    try { await api.del(`/api/users/${id}`); load(); }
+    catch (e) { flash(e.message, true); }
   };
 
-  // Webhook URL for Jira config
   const webhookUrl = `https://xkbgloaanzirzasldwro.supabase.co/functions/v1/api/api/webhooks/jira?secret=changeme`;
+  const counts = {
+    cs:    users.filter(u => u.role === 'cs').length,
+    tech:  users.filter(u => u.role === 'tech').length,
+    admin: users.filter(u => u.role === 'admin').length,
+  };
 
   return (
-    <>
-      {error   && <div className="error-msg">{error}</div>}
-      {success && <div className="success-msg">{success}</div>}
+    <div className="admin-layout">
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18, alignItems: 'start' }}>
+      {/* ── LEFT: Team Members ─────────────────────────────────── */}
+      <div className="adm-card">
 
-        {/* ── Team Members ── */}
-        <div className="card">
-          <h2>👥 Team Members</h2>
-          <p className="muted text-sm" style={{ marginBottom: 14 }}>
-            Give your CS or Tech team access to the platform.
-          </p>
-
-          <table>
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Role</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map(u => (
-                <tr key={u.id}>
-                  <td style={{ fontWeight: 600 }}>{u.name}</td>
-                  <td className="muted text-sm">{u.email}</td>
-                  <td>
-                    <span className={`role-chip role-${u.role}`} style={{ display: 'inline-block' }}>
-                      {u.role === 'tech' ? 'Tech' : u.role === 'cs' ? 'CS' : 'Admin'}
-                    </span>
-                  </td>
-                  <td>
-                    <button className="btn btn-sm btn-danger" onClick={() => deleteUser(u.id, u.name)}>
-                      Remove
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          <hr className="divider" />
-          <h3>Add team member</h3>
-
-          <form onSubmit={addUser}>
-            <div className="row">
-              <div className="field">
-                <label>Full name</label>
-                <input
-                  placeholder="Jane Doe"
-                  value={newUser.name}
-                  onChange={e => setNewUser({ ...newUser, name: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="field">
-                <label>Work email</label>
-                <input
-                  type="email"
-                  placeholder="jane@tagmango.com"
-                  value={newUser.email}
-                  onChange={e => setNewUser({ ...newUser, email: e.target.value })}
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="row">
-              <div className="field">
-                <label>Role</label>
-                <select value={newUser.role} onChange={e => setNewUser({ ...newUser, role: e.target.value })}>
-                  <option value="cs">Customer Success (CS)</option>
-                  <option value="tech">Tech / Product</option>
-                  <option value="admin">Admin</option>
-                </select>
-                <div className="hint">
-                  CS → raises requirements &nbsp;·&nbsp; Tech → reviews, accepts, rejects
-                </div>
-              </div>
-              <div className="field">
-                <label>Initial password</label>
-                <div className="pw-wrap">
-                  <input
-                    type={showPw ? 'text' : 'password'}
-                    placeholder="Min. 6 characters"
-                    value={newUser.password}
-                    onChange={e => setNewUser({ ...newUser, password: e.target.value })}
-                    required
-                    minLength={6}
-                  />
-                  <button type="button" className="pw-toggle" onClick={() => setShowPw(v => !v)} tabIndex={-1}>
-                    {showPw ? '🙈' : '👁️'}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <button className="btn btn-primary" type="submit">➕ Add member</button>
-          </form>
+        {/* Header */}
+        <div className="adm-card-hd">
+          <div>
+            <div className="adm-card-title">Team Members</div>
+            <div className="adm-card-sub">Manage who can access this platform</div>
+          </div>
+          <div className="adm-role-pills">
+            {counts.cs    > 0 && <span className="adm-pill adm-pill-cs">{counts.cs} CS</span>}
+            {counts.tech  > 0 && <span className="adm-pill adm-pill-tech">{counts.tech} Tech</span>}
+            {counts.admin > 0 && <span className="adm-pill adm-pill-admin">{counts.admin} Admin</span>}
+          </div>
         </div>
 
-        {/* Right column */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+        {/* Alerts */}
+        {error   && <div className="adm-alert adm-alert-err">{error}</div>}
+        {success && <div className="adm-alert adm-alert-ok">🔑 {success}</div>}
 
-          {/* ── Jira Integration ── */}
-          <div className="card">
-            <h2>🔗 Jira Integration</h2>
-            <p className="muted text-sm" style={{ marginBottom: 14 }}>
-              Configure Jira to push real-time status updates to this platform. Jira calls this webhook whenever an issue changes.
-            </p>
+        {/* Member rows */}
+        <div className="adm-members">
+          {users.length === 0 && <div className="adm-empty">No members yet — add one below.</div>}
+          {users.map(u => {
+            const initials = u.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+            return (
+              <div key={u.id} className="adm-member-row">
+                <div className={`adm-avatar adm-av-${u.role}`}>{initials}</div>
+                <div className="adm-member-info">
+                  <div className="adm-member-name">{u.name}</div>
+                  <div className="adm-member-email">{u.email}</div>
+                </div>
+                <span className={`adm-role-tag adm-role-${u.role}`}>{ROLE_LABELS[u.role] || u.role}</span>
+                {u.id === me.id
+                  ? <span className="adm-you-tag">You</span>
+                  : <button className="adm-remove" onClick={() => deleteUser(u.id, u.name)}>Remove</button>
+                }
+              </div>
+            );
+          })}
+        </div>
 
-            <div className="field">
-              <label>Webhook URL (paste into Jira)</label>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <input
-                  readOnly
-                  value={webhookUrl}
-                  style={{ fontFamily: 'monospace', fontSize: 11, background: '#f9fafb' }}
-                  onFocus={e => e.target.select()}
-                />
-                <button className="btn btn-sm" onClick={() => { navigator.clipboard.writeText(webhookUrl); flash('Copied!'); }}>
-                  Copy
-                </button>
-              </div>
-              <div className="hint">
-                In Jira: Project Settings → Webhooks → Create Webhook → paste this URL → select "Issue updated" events.
-              </div>
+        {/* Add member */}
+        <div className="adm-add-wrap">
+          <div className="adm-add-title">Add new member</div>
+          <form className="adm-add-row" onSubmit={addUser}>
+            <div className="adm-email-wrap">
+              <span className="adm-email-ico">✉</span>
+              <input
+                type="email"
+                className="adm-email-input"
+                placeholder="name@tagmango.com"
+                value={newEmail}
+                onChange={e => setNewEmail(e.target.value)}
+                required
+              />
             </div>
-
-            <hr className="divider" />
-            <h3>Jira Projects</h3>
-            {projects.length === 0
-              ? <div className="muted text-sm" style={{ marginBottom: 12 }}>No projects configured yet.</div>
-              : (
-                <table style={{ marginBottom: 12 }}>
-                  <thead><tr><th>Key</th><th>Name</th><th>Default</th></tr></thead>
-                  <tbody>
-                    {projects.map(p => (
-                      <tr key={p.key}>
-                        <td><span className="tag">{p.key}</span></td>
-                        <td>{p.name}</td>
-                        <td style={{ textAlign: 'center' }}>{p.is_default ? '⭐' : ''}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )
-            }
-
-            <form onSubmit={addProj}>
-              <div className="row">
-                <div className="field">
-                  <label>Project key</label>
-                  <input placeholder="e.g. TM" value={newProj.key} onChange={e => setNewProj({ ...newProj, key: e.target.value.toUpperCase() })} required />
-                </div>
-                <div className="field">
-                  <label>Project name</label>
-                  <input placeholder="e.g. TagMango Platform" value={newProj.name} onChange={e => setNewProj({ ...newProj, name: e.target.value })} required />
-                </div>
-              </div>
-              <div className="field" style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-                <input type="checkbox" id="is_default" checked={newProj.is_default} onChange={e => setNewProj({ ...newProj, is_default: e.target.checked })} style={{ width: 'auto' }} />
-                <label htmlFor="is_default" style={{ margin: 0, cursor: 'pointer' }}>Set as default</label>
-              </div>
-              <button className="btn btn-primary" type="submit">💾 Save project</button>
-            </form>
-          </div>
-
+            <select className="adm-role-select" value={newRole} onChange={e => setNewRole(e.target.value)}>
+              <option value="cs">CS — Customer Success</option>
+              <option value="tech">Tech — Engineering</option>
+              <option value="admin">Admin</option>
+            </select>
+            <button className="btn btn-primary" type="submit" disabled={adding}>
+              {adding ? 'Adding…' : '+ Add Member'}
+            </button>
+          </form>
+          <div className="adm-add-hint">A temporary password is auto-generated and shown above — share it with the new member.</div>
         </div>
       </div>
-    </>
+
+      {/* ── RIGHT: Jira Integration ────────────────────────────── */}
+      <div className="adm-card adm-jira-card">
+
+        <div className="adm-card-hd">
+          <div>
+            <div className="adm-card-title">Jira Integration</div>
+            <div className="adm-card-sub">Real-time issue status sync via webhook</div>
+          </div>
+          <span className="adm-jira-live">⚡ Live</span>
+        </div>
+
+        {/* Visual webhook section */}
+        <div className="adm-jira-body">
+          <div className="adm-jira-graphic">🔗</div>
+          <p className="adm-jira-desc">
+            Paste this URL into Jira as a webhook. Whenever a Jira issue status changes,
+            this platform updates automatically — no manual refreshing needed.
+          </p>
+
+          <div className="adm-webhook-box">
+            <div className="adm-webhook-label">Webhook URL</div>
+            <div className="adm-webhook-row">
+              <code className="adm-webhook-url">{webhookUrl}</code>
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={() => { navigator.clipboard.writeText(webhookUrl); flash('Copied!'); }}
+              >
+                Copy
+              </button>
+            </div>
+          </div>
+
+          <div className="adm-steps">
+            <div className="adm-steps-label">How to set up</div>
+            {[
+              ['1', 'Open your Jira project'],
+              ['2', 'Go to Project Settings → Webhooks'],
+              ['3', 'Click "Create Webhook"'],
+              ['4', 'Paste the URL above'],
+              ['5', 'Select "Issue updated" event → Save'],
+            ].map(([n, txt]) => (
+              <div key={n} className="adm-step">
+                <span className="adm-step-num">{n}</span>
+                <span className="adm-step-txt">{txt}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+    </div>
   );
 }
