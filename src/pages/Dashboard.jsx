@@ -436,58 +436,50 @@ function DetailPanel({ id, user, isTech, onClose, onRefresh }) {
         {data && (
           <div className="detail-body">
 
-            {/* ── Meta chips ── */}
-            <div className="detail-meta-row">
+            {/* ── 1. STATUS STRIP ── */}
+            <div className="detail-status-strip">
               <StatusBadge status={data.status} />
-              <span className={`prio-badge prio-${data.current_priority}`}>{data.current_priority}</span>
-              <span className="detail-category-tag">{data.category}</span>
+              <span className="detail-strip-dot">·</span>
+              <span className="detail-raised-meta">
+                by <strong>{data.submitter_name}</strong>
+              </span>
+              <span className="detail-strip-dot">·</span>
+              <span className="detail-raised-meta">{data.created_at?.slice(0, 10)}</span>
             </div>
 
-            {/* ── Raised by ── */}
-            <div className="detail-raised-by">
-              Raised by <strong>{data.submitter_name}</strong>
-              <span className="detail-raised-dot">·</span>
-              {data.created_at?.slice(0, 10)}
-            </div>
-
-            <div className="detail-divider" />
-
-            {/* ── Info grid (Customer + Date) ── */}
-            <div className="detail-info-grid">
-              <div className="detail-info-card">
-                <div className="detail-info-label">
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"><circle cx="6" cy="4" r="2"/><path d="M2 10c0-2.2 1.8-4 4-4s4 1.8 4 4"/></svg>
-                  Customer
-                </div>
-                <div className="detail-info-value">{data.customer_name || '—'}</div>
-              </div>
-              <div className="detail-info-card">
-                <div className="detail-info-label">
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"><rect x="1" y="2" width="10" height="9" rx="1.5"/><path d="M4 1v2M8 1v2M1 5h10"/></svg>
-                  Date Raised
-                </div>
-                <div className="detail-info-value">{data.created_at?.slice(0, 10) || '—'}</div>
-              </div>
-            </div>
-
-            {/* ── Use Case ── */}
+            {/* ── 2. USE CASE — hero content ── */}
             {data.use_case && (
-              <div className="detail-field">
-                <div className="detail-field-label">
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"><path d="M2 3h8M2 6h6M2 9h4"/></svg>
-                  Use Case
-                </div>
-                <div className="detail-field-text">{data.use_case}</div>
+              <div className="detail-usecase-block">
+                <div className="detail-section-label">Use Case</div>
+                <p className="detail-usecase-text">{data.use_case}</p>
               </div>
             )}
 
-            {/* ── Jira ticket ── */}
-            {data.jira_ticket_key && (
-              <div className="detail-field">
-                <div className="detail-field-label">
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"><path d="M5 2H3a1 1 0 00-1 1v7a1 1 0 001 1h6a1 1 0 001-1V7M7 2h3v3M10 2L5.5 6.5"/></svg>
-                  Jira Ticket
+            {/* ── 3. PRIORITY + CATEGORY + CUSTOMER chips row ── */}
+            <div className="detail-chips-row">
+              {/* Priority */}
+              <div className="detail-chip-group">
+                <span className="detail-chip-label">Priority</span>
+                <span className={`prio-badge prio-${data.current_priority}`}>{data.current_priority}</span>
+              </div>
+              {/* Category */}
+              <div className="detail-chip-group">
+                <span className="detail-chip-label">Category</span>
+                <span className="detail-category-tag">{data.category}</span>
+              </div>
+              {/* Customer */}
+              {data.customer_name && (
+                <div className="detail-chip-group">
+                  <span className="detail-chip-label">Customer</span>
+                  <span className="detail-customer-chip">{data.customer_name}</span>
                 </div>
+              )}
+            </div>
+
+            {/* ── 4. JIRA ticket (if linked) ── */}
+            {data.jira_ticket_key && (
+              <div className="detail-jira-block">
+                <div className="detail-section-label">Jira Ticket</div>
                 <div className="detail-jira-info">
                   <a href={data.jira_ticket_url} target="_blank" rel="noreferrer" className="jira-link">
                     {data.jira_ticket_key}
@@ -498,11 +490,11 @@ function DetailPanel({ id, user, isTech, onClose, onRefresh }) {
               </div>
             )}
 
-            {/* ── Rejection reason ── */}
+            {/* ── 5. REJECTION REASON ── */}
             {data.status === 'Rejected' && data.rejection_reason && (
               <div className="detail-reject-block">
                 <div className="detail-reject-block-label">
-                  <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="6.5" cy="6.5" r="5"/><path d="M6.5 4v3M6.5 9v.5"/></svg>
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="6" cy="6" r="5"/><path d="M6 3.5v3M6 8.5v.5"/></svg>
                   Rejection Reason
                 </div>
                 <div className="detail-reject-block-text">{data.rejection_reason}</div>
@@ -511,25 +503,27 @@ function DetailPanel({ id, user, isTech, onClose, onRefresh }) {
 
             <div className="detail-divider" />
 
-            {/* ── Votes ── */}
-            <div className="detail-field">
-              <div className="detail-field-label">
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"><path d="M2 10V6l2-4h2l1 3h3l-1 2H6v3"/></svg>
-                Votes
+            {/* ── 6. VOTES ── */}
+            <div className="detail-votes-section">
+              <div className="detail-votes-header">
+                <span className="detail-section-label" style={{ marginBottom: 0 }}>Votes</span>
                 <span className="detail-vote-count-badge">{data.upvotes?.length ?? 0}</span>
               </div>
               {(data.upvotes?.length ?? 0) === 0
-                ? <div className="detail-no-votes">No votes yet</div>
-                : data.upvotes.map((v, i) => (
-                    <div key={i} className="detail-vote-item">
-                      <span className="detail-vote-thumb">👍</span>
-                      <span><strong>{v.user_name}</strong> <span className="muted">· {v.customer_name}</span></span>
-                    </div>
-                  ))
+                ? <div className="detail-no-votes">No votes yet — be the first to back this!</div>
+                : <div className="detail-votes-list">
+                    {data.upvotes.map((v, i) => (
+                      <div key={i} className="detail-vote-item">
+                        <span className="detail-vote-thumb">👍</span>
+                        <span className="detail-vote-name">{v.user_name}</span>
+                        {v.customer_name && <span className="detail-vote-customer">· {v.customer_name}</span>}
+                      </div>
+                    ))}
+                  </div>
               }
             </div>
 
-            {/* ── Tech actions ── */}
+            {/* ── 7. TECH ACTIONS ── */}
             {canAct && (
               <div className="detail-actions">
                 {!data.jira_ticket_key && (
@@ -596,7 +590,7 @@ function RaiseModal({ onClose, onSuccess }) {
     setAttachment({ name: file.name, size: file.size, type: file.type });
   };
 
-  const canSubmit = form.title.trim() && form.use_case.trim() && form.customer_name.trim() && !busy;
+  const canSubmit = form.title.trim() && form.use_case.trim() && !busy;
 
   const submit = async (e) => {
     e.preventDefault();
@@ -738,12 +732,9 @@ function RaiseModal({ onClose, onSuccess }) {
           {/* Customer + Category */}
           <div className="raise-row">
             <div className="raise-field" style={{ flex: 1 }}>
-              <label className="raise-label">
-                Customer / Account <span className="raise-req">*</span>
-              </label>
+              <label className="raise-label">Customer / Account</label>
               <input
                 className="raise-input"
-                required
                 value={form.customer_name}
                 onChange={e => up('customer_name', e.target.value)}
                 placeholder="Acme Corp"
