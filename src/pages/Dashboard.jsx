@@ -163,7 +163,7 @@ export default function Dashboard() {
               <th style={{ width: 95 }}>Priority</th>
               <th style={{ width: 185 }}>Status</th>
               <th style={{ width: 130, textAlign: 'center' }}>Vote</th>
-              <th style={{ width: 52 }}></th>
+              <th style={{ width: 80 }}>Action</th>
             </tr>
           </thead>
           <tbody>
@@ -282,7 +282,7 @@ function RequirementRow({ idx, req: r, user, isTech, onVote, onReject, onJira, o
       {/* Status / Jira */}
       <td>
         {r.status === 'Rejected' ? (
-          /* ── Rejected state ── */
+          /* ── Rejected ── */
           <button className="status-rejected-cell" onClick={onView}>
             <span className="status-rejected-badge">
               <svg width="9" height="9" viewBox="0 0 9 9" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M1.5 1.5l6 6M7.5 1.5l-6 6"/></svg>
@@ -291,34 +291,12 @@ function RequirementRow({ idx, req: r, user, isTech, onVote, onReject, onJira, o
             <span className="status-view-reason">View reason →</span>
           </button>
         ) : r.jira_ticket_key ? (
-          /* ── Has Jira ticket ── */
+          /* ── Jira linked: show key + current status ── */
           <div className="jira-linked">
             <a href={r.jira_ticket_url} target="_blank" rel="noreferrer" className="jira-link">
-              <svg width="11" height="11" viewBox="0 0 11 11" fill="#2563eb"><rect width="11" height="11" rx="2.5" fill="#2563eb"/><path d="M5.5 2.5v6M2.5 5.5h6" stroke="white" strokeWidth="1.6" strokeLinecap="round"/></svg>
               {r.jira_ticket_key}
             </a>
-            {r.jira_assignee && <div className="jira-assignee">👤 {r.jira_assignee}</div>}
-            {canAct && (
-              <button className="jira-reject-chip" onClick={onReject}>✕ Reject</button>
-            )}
-          </div>
-        ) : isTech ? (
-          /* ── Tech actions ── */
-          <div className="jira-action-group">
-            <button className="jira-chip jira-chip-create" onClick={() => onJira('create')}>
-              <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M5.5 1v9M1 5.5h9"/></svg>
-              Create
-            </button>
-            <button className="jira-chip jira-chip-link" onClick={() => onJira('link')}>
-              <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M4 7L7 4M3 5a2 2 0 100-4 2 2 0 000 4M8 10a2 2 0 100-4 2 2 0 000 4"/></svg>
-              Link
-            </button>
-            {canAct && (
-              <button className="jira-chip jira-chip-reject" onClick={onReject}>
-                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M2 2l6 6M8 2l-6 6"/></svg>
-                Reject
-              </button>
-            )}
+            {r.status && <div className="jira-status-label">{r.status}</div>}
           </div>
         ) : (
           <span className="muted text-sm">—</span>
