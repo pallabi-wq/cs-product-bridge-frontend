@@ -31,6 +31,7 @@ export default function Dashboard() {
   const [search, setSearch]   = useState('');
   const [detailId, setDetailId] = useState(null);
 
+  const [sortDesc, setSortDesc]       = useState(true);   // true = newest first
   const [raiseOpen, setRaiseOpen]     = useState(false);
   const [rejectModal, setRejectModal] = useState(null);
   const [jiraModal, setJiraModal]     = useState(null);
@@ -60,16 +61,21 @@ export default function Dashboard() {
     rejected: rows.filter(r => r.status === 'Rejected').length,
   };
 
-  const filtered = rows.filter(r => {
-    const matchTab =
-      activeTab === 'open'     ? OPEN_STATUSES.includes(r.status) :
-      activeTab === 'rejected' ? r.status === 'Rejected' :
-      activeTab === 'resolved' ? r.status === 'Done' : true;
-    const q = search.toLowerCase();
-    const matchSearch = !q || [r.title, r.customer_name, r.submitter_name, r.use_case]
-      .some(v => v?.toLowerCase().includes(q));
-    return matchTab && matchSearch;
-  });
+  const filtered = rows
+    .filter(r => {
+      const matchTab =
+        activeTab === 'open'     ? OPEN_STATUSES.includes(r.status) :
+        activeTab === 'rejected' ? r.status === 'Rejected' :
+        activeTab === 'resolved' ? r.status === 'Done' : true;
+      const q = search.toLowerCase();
+      const matchSearch = !q || [r.title, r.customer_name, r.submitter_name, r.use_case]
+        .some(v => v?.toLowerCase().includes(q));
+      return matchTab && matchSearch;
+    })
+    .sort((a, b) => {
+      const da = new Date(a.created_at), db = new Date(b.created_at);
+      return sortDesc ? db - da : da - db;
+    });
 
   // Optimistic vote handler
   const handleVote = async (reqId, customerName) => {
@@ -142,7 +148,15 @@ export default function Dashboard() {
         <table className="req-table">
           <thead>
             <tr>
-              <th style={{ width: 100 }}>Req No.</th>
+              <th style={{ width: 100 }}>
+                <button className="sort-th-btn" onClick={() => setSortDesc(d => !d)}>
+                  Req No.
+                  {sortDesc
+                    ? <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M5 1v8M2 6l3 3 3-3"/></svg>
+                    : <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M5 9V1M2 4l3-3 3 3"/></svg>
+                  }
+                </button>
+              </th>
               <th style={{ width: 150 }}>POC</th>
               <th>Title</th>
               <th style={{ width: 210 }}>Use Case</th>

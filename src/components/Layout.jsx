@@ -1,6 +1,5 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
-import NotificationsBell from './NotificationsBell.jsx';
 
 const PAGE_META = {
   '/':      { title: 'Requirements', sub: 'Track and prioritise product requests' },
@@ -67,7 +66,6 @@ export default function Layout() {
                 {user.role === 'tech' ? 'Tech' : user.role === 'cs' ? 'CS' : 'Admin'}
               </span>
             </div>
-            <NotificationsBell />
           </div>
           <button className="sidebar-logout" onClick={logout}>
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">

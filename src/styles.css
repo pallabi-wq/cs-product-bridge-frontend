@@ -746,6 +746,26 @@ textarea { min-height: 90px; resize: vertical; }
   border-radius: 14px 14px 0 0;
 }
 
+/* ── Sort column header button ──────────────────────────── */
+.sort-th-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.13s;
+}
+.sort-th-btn:hover { color: var(--primary); }
+
 /* ── Requirements table ─────────────────────────────────── */
 .req-table { width: 100%; }
 .req-table th {
