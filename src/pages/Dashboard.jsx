@@ -378,10 +378,8 @@ function DetailPanel({ id, user, isCS, isTech, onClose, onRefresh }) {
         {data && (
           <div className="detail-body">
 
-            {/* Status + meta */}
+            {/* Meta */}
             <div className="detail-status-strip">
-              <StatusBadge status={data.status} />
-              <span className="detail-strip-dot">·</span>
               <span className="detail-raised-meta">by <strong>{data.submitter_name}</strong></span>
               <span className="detail-strip-dot">·</span>
               <span className="detail-raised-meta">{data.created_at?.slice(0, 10)}</span>
