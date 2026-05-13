@@ -3,20 +3,14 @@ import { useAuth } from '../context/AuthContext.jsx';
 import NotificationsBell from './NotificationsBell.jsx';
 
 const PAGE_META = {
-  '/':        { title: 'Requirements',  sub: 'Track and prioritise product requests' },
-  '/reports': { title: 'Reports',       sub: 'Analytics and insights' },
-  '/admin':   { title: 'Admin Panel',   sub: 'Team members and integrations' },
+  '/':      { title: 'Requirements', sub: 'Track and prioritise product requests' },
+  '/admin': { title: 'Admin Panel',  sub: 'Team members and integrations' },
 };
 
 const IconReq = () => (
   <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
     <rect x="2" y="2" width="12" height="12" rx="2"/>
     <path d="M5 6h6M5 8.5h4M5 11h3"/>
-  </svg>
-);
-const IconReports = () => (
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M2 12V8M6 12V5M10 12V7M14 12V3"/>
   </svg>
 );
 const IconAdmin = () => (
@@ -53,9 +47,6 @@ export default function Layout() {
           <div className="sidebar-section-label">Menu</div>
           <NavLink to="/" end>
             <span className="nav-icon"><IconReq /></span>Requirements
-          </NavLink>
-          <NavLink to="/reports">
-            <span className="nav-icon"><IconReports /></span>Reports
           </NavLink>
           {user.role === 'admin' && (
             <>
