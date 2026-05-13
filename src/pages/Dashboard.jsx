@@ -61,6 +61,11 @@ export default function Dashboard() {
     rejected: rows.filter(r => r.status === 'Rejected').length,
   };
 
+  // Stable REQ numbers — oldest requirement is always REQ-001 regardless of sort order
+  const reqNumMap = {};
+  [...rows].sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+    .forEach((r, i) => { reqNumMap[r.id] = i + 1; });
+
   const filtered = rows
     .filter(r => {
       const matchTab =
@@ -190,10 +195,10 @@ export default function Dashboard() {
                 </td>
               </tr>
             )}
-            {filtered.map((r, i) => (
+            {filtered.map((r) => (
               <RequirementRow
                 key={r.id}
-                idx={i + 1}
+                idx={reqNumMap[r.id] ?? 0}
                 req={r}
                 user={user}
                 isTech={isTech}
@@ -212,6 +217,7 @@ export default function Dashboard() {
         <DetailPanel
           id={detailId}
           user={user}
+          isCS={isCS}
           isTech={isTech}
           onClose={() => setDetailId(null)}
           onRefresh={() => load(true)}
@@ -258,12 +264,12 @@ function RequirementRow({ idx, req: r, user, isTech, onVote, onReject, onJira, o
     <tr className="req-row">
       {/* No. */}
       <td className="req-no">
-        <span className="req-no-badge">{reqNo}</span>
+        <span className="req-no-plain">{reqNo}</span>
       </td>
 
       {/* POC */}
       <td>
-        <div className="req-poc-name">{r.submitter_name}</div>
+        <span className="req-poc-name">{r.submitter_name}</span>
       </td>
 
       {/* Title */}
@@ -284,10 +290,7 @@ function RequirementRow({ idx, req: r, user, isTech, onVote, onReject, onJira, o
         {r.status === 'Rejected' ? (
           /* ── Rejected ── */
           <button className="status-rejected-cell" onClick={onView}>
-            <span className="status-rejected-badge">
-              <svg width="9" height="9" viewBox="0 0 9 9" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M1.5 1.5l6 6M7.5 1.5l-6 6"/></svg>
-              Rejected
-            </span>
+            <span className="status-rejected-text">Rejected</span>
             <span className="status-view-reason">View reason →</span>
           </button>
         ) : r.jira_ticket_key ? (
@@ -340,10 +343,11 @@ function RequirementRow({ idx, req: r, user, isTech, onVote, onReject, onJira, o
 }
 
 // ─── Detail slide-over panel ──────────────────────────────
-function DetailPanel({ id, user, isTech, onClose, onRefresh }) {
-  const [data, setData]       = useState(null);
+function DetailPanel({ id, user, isCS, isTech, onClose, onRefresh }) {
+  const [data, setData]             = useState(null);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [jiraOpen, setJiraOpen]     = useState(null);
+  const [reopenOpen, setReopenOpen] = useState(false);
 
   const reload = () => api.get(`/api/requirements/${id}`).then(setData).catch(console.error);
   useEffect(() => { reload(); }, [id]);
@@ -452,7 +456,9 @@ function DetailPanel({ id, user, isTech, onClose, onRefresh }) {
                       <div key={i} className="detail-vote-item">
                         <span className="detail-vote-thumb">👍</span>
                         <span className="detail-vote-name">{v.user_name}</span>
-                        {v.customer_name && <span className="detail-vote-customer"> · {v.customer_name}</span>}
+                        {v.customer_name && v.customer_name !== v.user_name && (
+                          <span className="detail-vote-customer"> · {v.customer_name}</span>
+                        )}
                       </div>
                     ))
                 }
@@ -471,6 +477,15 @@ function DetailPanel({ id, user, isTech, onClose, onRefresh }) {
                 <button className="btn btn-sm btn-danger" onClick={() => setRejectOpen(true)}>✕ Reject</button>
               </div>
             )}
+
+            {/* CS reopen action — only for rejected requirements */}
+            {isCS && data.status === 'Rejected' && (
+              <div className="detail-actions">
+                <button className="btn btn-primary btn-sm" onClick={() => setReopenOpen(true)}>
+                  ↩ Request Re-review
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -480,6 +495,13 @@ function DetailPanel({ id, user, isTech, onClose, onRefresh }) {
           id={id}
           onClose={() => setRejectOpen(false)}
           onSuccess={() => { setRejectOpen(false); onClose(); onRefresh(); }}
+        />
+      )}
+      {reopenOpen && (
+        <ReopenModal
+          id={id}
+          onClose={() => setReopenOpen(false)}
+          onSuccess={() => { setReopenOpen(false); onClose(); onRefresh(); }}
         />
       )}
       {jiraOpen === 'create' && (
@@ -805,6 +827,48 @@ function JiraCreateModal({ id, onClose, onSuccess }) {
         <select value={issueType} onChange={e => setIssueType(e.target.value)}>
           <option>Task</option><option>Story</option><option>Bug</option>
         </select>
+      </div>
+      {error && <div className="error-msg">{error}</div>}
+    </Modal>
+  );
+}
+
+// ─── Reopen Modal ────────────────────────────────────────
+function ReopenModal({ id, onClose, onSuccess }) {
+  const [comment, setComment] = useState('');
+  const [error, setError]     = useState(null);
+  const [busy, setBusy]       = useState(false);
+
+  const submit = async () => {
+    if (!comment.trim()) return;
+    setBusy(true); setError(null);
+    try {
+      await api.post(`/api/requirements/${id}/reopen`, { comment: comment.trim() });
+      onSuccess();
+    } catch (e) { setError(e.message); } finally { setBusy(false); }
+  };
+
+  return (
+    <Modal title="Request Re-review" onClose={onClose} footer={
+      <>
+        <button className="btn" onClick={onClose}>Cancel</button>
+        <button className="btn btn-primary" onClick={submit} disabled={!comment.trim() || busy}>
+          {busy ? 'Submitting…' : 'Submit for Re-review'}
+        </button>
+      </>
+    }>
+      <p className="muted text-sm" style={{ marginBottom: 14 }}>
+        Explain what has changed or why this should be reconsidered. This will be added as a comment and the requirement will be re-opened.
+      </p>
+      <div className="field">
+        <label>Comment</label>
+        <textarea
+          autoFocus
+          rows={4}
+          placeholder="e.g. We've validated this with 3 enterprise customers who confirmed it's blocking their workflow…"
+          value={comment}
+          onChange={e => setComment(e.target.value)}
+        />
       </div>
       {error && <div className="error-msg">{error}</div>}
     </Modal>
