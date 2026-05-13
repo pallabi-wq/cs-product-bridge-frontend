@@ -435,88 +435,101 @@ function DetailPanel({ id, user, isTech, onClose, onRefresh }) {
 
         {data && (
           <div className="detail-body">
-            {/* Status + priority row */}
+
+            {/* ── Meta chips ── */}
             <div className="detail-meta-row">
               <StatusBadge status={data.status} />
               <span className={`prio-badge prio-${data.current_priority}`}>{data.current_priority}</span>
               <span className="detail-category-tag">{data.category}</span>
             </div>
 
-            {/* Raised by */}
+            {/* ── Raised by ── */}
             <div className="detail-raised-by">
-              Raised by <strong>{data.submitter_name}</strong> · {data.created_at?.slice(0, 10)}
+              Raised by <strong>{data.submitter_name}</strong>
+              <span className="detail-raised-dot">·</span>
+              {data.created_at?.slice(0, 10)}
             </div>
 
             <div className="detail-divider" />
 
-            {/* Customer */}
-            <div className="detail-field">
-              <div className="detail-field-label">Customer</div>
-              <div className="detail-field-value">{data.customer_name} <span className="muted">· {data.customer_segment}</span></div>
+            {/* ── Info grid (Customer + Date) ── */}
+            <div className="detail-info-grid">
+              <div className="detail-info-card">
+                <div className="detail-info-label">
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"><circle cx="6" cy="4" r="2"/><path d="M2 10c0-2.2 1.8-4 4-4s4 1.8 4 4"/></svg>
+                  Customer
+                </div>
+                <div className="detail-info-value">{data.customer_name || '—'}</div>
+              </div>
+              <div className="detail-info-card">
+                <div className="detail-info-label">
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"><rect x="1" y="2" width="10" height="9" rx="1.5"/><path d="M4 1v2M8 1v2M1 5h10"/></svg>
+                  Date Raised
+                </div>
+                <div className="detail-info-value">{data.created_at?.slice(0, 10) || '—'}</div>
+              </div>
             </div>
 
-            {/* Description */}
-            {data.description && (
-              <div className="detail-field">
-                <div className="detail-field-label">Description</div>
-                <div className="detail-field-text">{data.description}</div>
-              </div>
-            )}
-
-            {/* Use case */}
+            {/* ── Use Case ── */}
             {data.use_case && (
               <div className="detail-field">
-                <div className="detail-field-label">Use Case</div>
+                <div className="detail-field-label">
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"><path d="M2 3h8M2 6h6M2 9h4"/></svg>
+                  Use Case
+                </div>
                 <div className="detail-field-text">{data.use_case}</div>
               </div>
             )}
 
-            {/* Business impact */}
-            {data.business_impact && (
-              <div className="detail-field">
-                <div className="detail-field-label">Business Impact</div>
-                <div className="detail-field-text">{data.business_impact}</div>
-              </div>
-            )}
-
-            {/* Jira */}
+            {/* ── Jira ticket ── */}
             {data.jira_ticket_key && (
               <div className="detail-field">
-                <div className="detail-field-label">Jira Ticket</div>
-                <a href={data.jira_ticket_url} target="_blank" rel="noreferrer" className="jira-link">
-                  🔗 {data.jira_ticket_key}
-                </a>
-                {data.jira_assignee && <div className="muted text-sm" style={{ marginTop: 4 }}>👤 {data.jira_assignee}</div>}
-                {data.jira_sprint    && <div className="muted text-sm">🏃 {data.jira_sprint}</div>}
+                <div className="detail-field-label">
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"><path d="M5 2H3a1 1 0 00-1 1v7a1 1 0 001 1h6a1 1 0 001-1V7M7 2h3v3M10 2L5.5 6.5"/></svg>
+                  Jira Ticket
+                </div>
+                <div className="detail-jira-info">
+                  <a href={data.jira_ticket_url} target="_blank" rel="noreferrer" className="jira-link">
+                    {data.jira_ticket_key}
+                  </a>
+                  {data.jira_assignee && <span className="detail-jira-meta">👤 {data.jira_assignee}</span>}
+                  {data.jira_sprint    && <span className="detail-jira-meta">🏃 {data.jira_sprint}</span>}
+                </div>
               </div>
             )}
 
-            {/* Rejection reason */}
+            {/* ── Rejection reason ── */}
             {data.status === 'Rejected' && data.rejection_reason && (
-              <div className="detail-field">
-                <div className="detail-field-label" style={{ color: '#ef4444' }}>Rejection Reason</div>
-                <div className="detail-reject-reason">{data.rejection_reason}</div>
+              <div className="detail-reject-block">
+                <div className="detail-reject-block-label">
+                  <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="6.5" cy="6.5" r="5"/><path d="M6.5 4v3M6.5 9v.5"/></svg>
+                  Rejection Reason
+                </div>
+                <div className="detail-reject-block-text">{data.rejection_reason}</div>
               </div>
             )}
 
             <div className="detail-divider" />
 
-            {/* Votes */}
+            {/* ── Votes ── */}
             <div className="detail-field">
               <div className="detail-field-label">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"><path d="M2 10V6l2-4h2l1 3h3l-1 2H6v3"/></svg>
                 Votes
                 <span className="detail-vote-count-badge">{data.upvotes?.length ?? 0}</span>
               </div>
-              {data.upvotes?.length === 0 && <div className="muted text-sm">No votes yet</div>}
-              {data.upvotes?.map((v, i) => (
-                <div key={i} className="detail-vote-item">
-                  <span className="detail-vote-thumb">👍</span>
-                  <span><strong>{v.user_name}</strong> · <em>{v.customer_name}</em></span>
-                </div>
-              ))}
+              {(data.upvotes?.length ?? 0) === 0
+                ? <div className="detail-no-votes">No votes yet</div>
+                : data.upvotes.map((v, i) => (
+                    <div key={i} className="detail-vote-item">
+                      <span className="detail-vote-thumb">👍</span>
+                      <span><strong>{v.user_name}</strong> <span className="muted">· {v.customer_name}</span></span>
+                    </div>
+                  ))
+              }
             </div>
 
-            {/* Tech actions */}
+            {/* ── Tech actions ── */}
             {canAct && (
               <div className="detail-actions">
                 {!data.jira_ticket_key && (
