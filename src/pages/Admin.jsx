@@ -76,31 +76,9 @@ export default function Admin() {
 
         {/* Alerts */}
         {error   && <div className="adm-alert adm-alert-err">{error}</div>}
-        {success && <div className="adm-alert adm-alert-ok">🔑 {success}</div>}
+        {success && <div className="adm-alert adm-alert-ok">✅ {success}</div>}
 
-        {/* Member rows */}
-        <div className="adm-members">
-          {users.length === 0 && <div className="adm-empty">No members yet — add one below.</div>}
-          {users.map(u => {
-            const initials = u.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
-            return (
-              <div key={u.id} className="adm-member-row">
-                <div className={`adm-avatar adm-av-${u.role}`}>{initials}</div>
-                <div className="adm-member-info">
-                  <div className="adm-member-name">{u.name}</div>
-                  <div className="adm-member-email">{u.email}</div>
-                </div>
-                <span className={`adm-role-tag adm-role-${u.role}`}>{ROLE_LABELS[u.role] || u.role}</span>
-                {u.id === me.id
-                  ? <span className="adm-you-tag">You</span>
-                  : <button className="adm-remove" onClick={() => deleteUser(u.id, u.name)}>Remove</button>
-                }
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Add member */}
+        {/* Add member — TOP */}
         <div className="adm-add-wrap">
           <div className="adm-add-title">Add new member</div>
           <form className="adm-add-row" onSubmit={addUser}>
@@ -125,6 +103,28 @@ export default function Admin() {
             </button>
           </form>
           <div className="adm-add-hint">They'll be asked to set their own password the first time they log in.</div>
+        </div>
+
+        {/* Member rows */}
+        <div className="adm-members">
+          {users.length === 0 && <div className="adm-empty">No members yet.</div>}
+          {users.map(u => {
+            const initials = u.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+            return (
+              <div key={u.id} className="adm-member-row">
+                <div className={`adm-avatar adm-av-${u.role}`}>{initials}</div>
+                <div className="adm-member-info">
+                  <div className="adm-member-name">{u.name}</div>
+                  <div className="adm-member-email">{u.email}</div>
+                </div>
+                <span className={`adm-role-tag adm-role-${u.role}`}>{ROLE_LABELS[u.role] || u.role}</span>
+                {u.id === me.id
+                  ? <span className="adm-you-tag">You</span>
+                  : <button className="adm-remove" onClick={() => deleteUser(u.id, u.name)}>Remove</button>
+                }
+              </div>
+            );
+          })}
         </div>
       </div>
 
