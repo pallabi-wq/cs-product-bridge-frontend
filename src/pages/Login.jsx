@@ -33,7 +33,13 @@ export default function Login() {
     try {
       const res = await api.post('/api/auth/check-email', { email });
       setRolePreview(res);
-      setStep('password');
+      if (res.must_change_password) {
+        // New user — no password set yet, skip straight to set-password
+        setPendingUser({ id: res.id, name: res.name, role: res.role });
+        setStep('set-password');
+      } else {
+        setStep('password');
+      }
     } catch (err) {
       setError(err.message || 'No account found. Contact your admin.');
     } finally { setBusy(false); }
@@ -157,7 +163,7 @@ export default function Login() {
               <div className="login-welcome-icon">👋</div>
               <div>
                 <div className="login-welcome-title">Welcome, {pendingUser?.name?.split(' ')[0]}!</div>
-                <div className="login-welcome-sub">Please set your own password to get started. You won't need the temporary one again.</div>
+                <div className="login-welcome-sub">Create a password to activate your account. You'll use this every time you log in.</div>
               </div>
             </div>
 

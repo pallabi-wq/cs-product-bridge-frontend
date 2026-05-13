@@ -8,13 +8,6 @@ function nameFromEmail(email) {
     .replace(/\b\w/g, c => c.toUpperCase());
 }
 
-function generatePassword() {
-  const chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789';
-  let pw = '';
-  for (let i = 0; i < 10; i++) pw += chars[Math.floor(Math.random() * chars.length)];
-  return pw + '@1';
-}
-
 const ROLE_LABELS = { cs: 'CS', tech: 'Tech', admin: 'Admin' };
 
 export default function Admin() {
@@ -40,11 +33,10 @@ export default function Admin() {
   const addUser = async (e) => {
     e.preventDefault();
     setAdding(true);
-    const tempPw = generatePassword();
     try {
-      await api.post('/api/users', { name: nameFromEmail(newEmail), email: newEmail, role: newRole, password: tempPw });
+      await api.post('/api/users', { name: nameFromEmail(newEmail), email: newEmail, role: newRole });
       setNewEmail(''); setNewRole('cs');
-      flash(`Member added — temporary password: ${tempPw}`);
+      flash(`✅ Access granted! They can set their password when they first log in.`);
       load();
     } catch (e) { flash(e.message, true); }
     setAdding(false);
@@ -132,7 +124,7 @@ export default function Admin() {
               {adding ? 'Adding…' : '+ Add Member'}
             </button>
           </form>
-          <div className="adm-add-hint">A temporary password is auto-generated and shown above — share it with the new member.</div>
+          <div className="adm-add-hint">They'll be asked to set their own password the first time they log in.</div>
         </div>
       </div>
 
