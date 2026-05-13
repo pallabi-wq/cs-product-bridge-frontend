@@ -13,10 +13,10 @@ const OPEN_STATUSES = ['New', 'Under Review', 'Accepted - In Backlog', 'Accepted
 const truncate = (s, n = 70) => s && s.length > n ? s.slice(0, n) + '…' : (s || '—');
 
 const STAT_CARDS = [
-  { key: 'all',      label: 'Total',    emoji: '📋', color: '#6366f1', bg: 'rgba(99,102,241,0.08)',  border: 'rgba(99,102,241,0.35)'  },
-  { key: 'open',     label: 'Open',     emoji: '🔵', color: '#3b82f6', bg: 'rgba(59,130,246,0.08)',  border: 'rgba(59,130,246,0.35)'  },
-  { key: 'resolved', label: 'Resolved', emoji: '✅', color: '#10b981', bg: 'rgba(16,185,129,0.08)',  border: 'rgba(16,185,129,0.35)'  },
-  { key: 'rejected', label: 'Rejected', emoji: '🚫', color: '#ef4444', bg: 'rgba(239,68,68,0.08)',   border: 'rgba(239,68,68,0.35)'   },
+  { key: 'all',      label: 'Total',    desc: 'All requirements', color: '#6366f1', bg: '#f5f3ff', border: '#c4b5fd', dot: '#6366f1' },
+  { key: 'open',     label: 'Open',     desc: 'Active & in review', color: '#2563eb', bg: '#eff6ff', border: '#93c5fd', dot: '#3b82f6' },
+  { key: 'resolved', label: 'Resolved', desc: 'Completed & shipped', color: '#059669', bg: '#ecfdf5', border: '#6ee7b7', dot: '#10b981' },
+  { key: 'rejected', label: 'Rejected', desc: 'Closed without action', color: '#dc2626', bg: '#fef2f2', border: '#fca5a5', dot: '#ef4444' },
 ];
 
 // ─── main component ───────────────────────────────────────
@@ -93,10 +93,7 @@ export default function Dashboard() {
     <>
       {/* ── Header ─────────────────────────────────────────── */}
       <div className="dash-header">
-        <div>
-          <h1 style={{ marginBottom: 2 }}>Requirements</h1>
-          <div className="muted text-sm">Track, vote and prioritise what gets built</div>
-        </div>
+        <div />
         <div className="dash-header-right">
           <div className="req-search-wrap">
             <svg className="req-search-ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2">
@@ -133,9 +130,12 @@ export default function Dashboard() {
               style={active ? { borderColor: c.border, background: c.bg } : {}}
               onClick={() => setActiveTab(c.key)}
             >
-              <div className="stat-card-emoji">{c.emoji}</div>
+              <div className="stat-card-top">
+                <span className="stat-card-dot" style={{ background: c.dot }} />
+                <span className="stat-card-label" style={active ? { color: c.color } : {}}>{c.label}</span>
+              </div>
               <div className="stat-card-count" style={active ? { color: c.color } : {}}>{tabCounts[c.key]}</div>
-              <div className="stat-card-label" style={active ? { color: c.color } : {}}>{c.label}</div>
+              <div className="stat-card-desc">{c.desc}</div>
               {active && <div className="stat-card-bar" style={{ background: c.color }} />}
             </button>
           );
