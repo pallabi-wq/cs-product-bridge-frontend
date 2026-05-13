@@ -77,15 +77,15 @@ export default function Dashboard() {
       return sortDesc ? db - da : da - db;
     });
 
-  // Optimistic vote handler
-  const handleVote = async (reqId, customerName) => {
+  // Optimistic vote handler — customer_name uses the logged-in user's name (required by API)
+  const handleVote = async (reqId) => {
     setRows(prev => prev.map(r =>
       r.id === reqId
         ? { ...r, upvotes: (typeof r.upvotes === 'number' ? r.upvotes : (r.upvotes?.length ?? 0)) + 1 }
         : r
     ));
     try {
-      await api.post(`/api/requirements/${reqId}/upvote`, { customer_name: customerName });
+      await api.post(`/api/requirements/${reqId}/upvote`, { customer_name: user.name });
       load(true);
     } catch (e) {
       setRows(prev => prev.map(r =>
@@ -247,7 +247,7 @@ function RequirementRow({ idx, req: r, user, isTech, onVote, onReject, onJira, o
   const submitVote = async () => {
     if (voting) return;
     setVoting(true);
-    await onVote(r.id, '');
+    await onVote(r.id);
     setVoted(true);
     setVoting(false);
   };
