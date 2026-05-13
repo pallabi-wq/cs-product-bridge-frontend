@@ -90,6 +90,38 @@ a:hover { text-decoration: underline; }
 }
 .login-hint strong { display: block; margin-bottom: 2px; }
 
+/* Welcome banner (step 3) */
+.login-welcome-banner {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  background: #f5f3ff;
+  border: 1.5px solid #ddd6fe;
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 4px;
+}
+.login-welcome-icon { font-size: 26px; flex-shrink: 0; line-height: 1; margin-top: 2px; }
+.login-welcome-title { font-size: 15px; font-weight: 800; color: var(--text); margin-bottom: 4px; }
+.login-welcome-sub   { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+/* Password strength bar */
+.pw-strength-bar {
+  height: 3px;
+  background: var(--border);
+  border-radius: 3px;
+  margin-top: 6px;
+  overflow: hidden;
+}
+.pw-strength-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s, background 0.3s;
+}
+.pw-str-weak   { width: 30%; background: var(--danger); }
+.pw-str-ok     { width: 65%; background: var(--warning); }
+.pw-str-strong { width: 100%; background: var(--success); }
+
 /* Email chip (step 2 back button) */
 .login-email-chip {
   display: flex;
