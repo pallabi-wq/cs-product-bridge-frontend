@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { api } from '../api/client.js';
 import StatusBadge from '../components/StatusBadge.jsx';
@@ -11,26 +10,31 @@ const SEGMENTS   = ['Enterprise', 'Mid-Market', 'SMB'];
 const CATEGORIES = ['Bug', 'Feature', 'Enhancement', 'Integration', 'UX'];
 const OPEN_STATUSES = ['New', 'Under Review', 'Accepted - In Backlog', 'Accepted - In Progress', 'Accepted - In Review/Testing', 'On Hold'];
 
-// ─── helpers ──────────────────────────────────────────────
-const truncate = (s, n = 60) => s && s.length > n ? s.slice(0, n) + '…' : (s || '—');
+const truncate = (s, n = 70) => s && s.length > n ? s.slice(0, n) + '…' : (s || '—');
+
+const STAT_CARDS = [
+  { key: 'all',      label: 'Total',    emoji: '📋', color: '#6366f1', bg: 'rgba(99,102,241,0.08)',  border: 'rgba(99,102,241,0.35)'  },
+  { key: 'open',     label: 'Open',     emoji: '🔵', color: '#3b82f6', bg: 'rgba(59,130,246,0.08)',  border: 'rgba(59,130,246,0.35)'  },
+  { key: 'resolved', label: 'Resolved', emoji: '✅', color: '#10b981', bg: 'rgba(16,185,129,0.08)',  border: 'rgba(16,185,129,0.35)'  },
+  { key: 'rejected', label: 'Rejected', emoji: '🚫', color: '#ef4444', bg: 'rgba(239,68,68,0.08)',   border: 'rgba(239,68,68,0.35)'   },
+];
 
 // ─── main component ───────────────────────────────────────
 export default function Dashboard() {
   const { user } = useAuth();
-  const isCS    = user.role === 'cs';
-  const isTech  = user.role === 'tech' || user.role === 'admin';
+  const isCS   = user.role === 'cs' || user.role === 'admin';
+  const isTech = user.role === 'tech' || user.role === 'admin';
 
-  const [rows, setRows]         = useState([]);
-  const [loading, setLoading]   = useState(false);
-  const [error, setError]       = useState(null);
+  const [rows, setRows]       = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError]     = useState(null);
   const [activeTab, setActiveTab] = useState('all');
-  const [search, setSearch]     = useState('');
+  const [search, setSearch]   = useState('');
+  const [detailId, setDetailId] = useState(null);
 
-  // modals
-  const [raiseOpen, setRaiseOpen]   = useState(false);
-  const [voteModal, setVoteModal]   = useState(null);   // requirement id
-  const [rejectModal, setRejectModal] = useState(null); // requirement id
-  const [jiraModal, setJiraModal]   = useState(null);   // { id, mode: 'create'|'link' }
+  const [raiseOpen, setRaiseOpen]     = useState(false);
+  const [rejectModal, setRejectModal] = useState(null);
+  const [jiraModal, setJiraModal]     = useState(null);
 
   const load = async (silent = false) => {
     if (!silent) setLoading(true);
@@ -43,17 +47,15 @@ export default function Dashboard() {
 
   useEffect(() => {
     load();
-    // Poll every 30 s for Jira status updates
-    const id = setInterval(() => load(true), 30000);
-    return () => clearInterval(id);
+    const t = setInterval(() => load(true), 30000);
+    return () => clearInterval(t);
   }, []);
 
-  // ── tab filter ────────────────────────────────────────
   const tabCounts = {
     all:      rows.length,
     open:     rows.filter(r => OPEN_STATUSES.includes(r.status)).length,
-    rejected: rows.filter(r => r.status === 'Rejected').length,
     resolved: rows.filter(r => r.status === 'Done').length,
+    rejected: rows.filter(r => r.status === 'Rejected').length,
   };
 
   const filtered = rows.filter(r => {
@@ -67,84 +69,115 @@ export default function Dashboard() {
     return matchTab && matchSearch;
   });
 
+  // Optimistic vote handler
+  const handleVote = async (reqId, customerName) => {
+    setRows(prev => prev.map(r =>
+      r.id === reqId
+        ? { ...r, upvotes: (typeof r.upvotes === 'number' ? r.upvotes : (r.upvotes?.length ?? 0)) + 1 }
+        : r
+    ));
+    try {
+      await api.post(`/api/requirements/${reqId}/upvote`, { customer_name: customerName });
+      load(true);
+    } catch (e) {
+      setRows(prev => prev.map(r =>
+        r.id === reqId
+          ? { ...r, upvotes: Math.max(0, (typeof r.upvotes === 'number' ? r.upvotes : (r.upvotes?.length ?? 0)) - 1) }
+          : r
+      ));
+      alert(e.message);
+    }
+  };
+
   return (
     <>
-      {/* ── Header bar ── */}
+      {/* ── Header ─────────────────────────────────────────── */}
       <div className="dash-header">
         <div>
           <h1 style={{ marginBottom: 2 }}>Requirements</h1>
-          <div className="muted text-sm">{tabCounts.open} open · {tabCounts.resolved} resolved · {tabCounts.rejected} rejected</div>
+          <div className="muted text-sm">Track, vote and prioritise what gets built</div>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div className="dash-header-right">
+          <div className="req-search-wrap">
+            <svg className="req-search-ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="8.5" cy="8.5" r="5.5"/><path d="M15 15l-3-3"/>
+            </svg>
+            <input
+              className="req-search-input"
+              type="text"
+              placeholder="Search requirements…"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+            {search && (
+              <button className="req-search-clear" onClick={() => setSearch('')}>✕</button>
+            )}
+          </div>
           <button className="btn btn-sm" onClick={() => api.downloadCsv({})}>⬇ Export</button>
-          {(isCS || user.role === 'admin') && (
+          {isCS && (
             <button className="btn btn-primary" onClick={() => setRaiseOpen(true)}>
-              ➕ Raise Requirement
+              ✦ Raise Requirement
             </button>
           )}
         </div>
       </div>
 
-      {/* ── Status tabs ── */}
-      <div className="tabs">
-        {[
-          { key: 'all',      label: 'All' },
-          { key: 'open',     label: 'Open' },
-          { key: 'resolved', label: 'Resolved' },
-          { key: 'rejected', label: 'Rejected' },
-        ].map(t => (
-          <button
-            key={t.key}
-            className={`tab ${activeTab === t.key ? 'tab-active' : ''}`}
-            onClick={() => setActiveTab(t.key)}
-          >
-            {t.label}
-            <span className={`tab-count ${activeTab === t.key ? 'tab-count-active' : ''}`}>
-              {tabCounts[t.key]}
-            </span>
-          </button>
-        ))}
-
-        <div style={{ flex: 1 }} />
-
-        <input
-          type="search"
-          placeholder="🔍 Search…"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          style={{ width: 220, marginBottom: 0 }}
-        />
+      {/* ── Stat cards ─────────────────────────────────────── */}
+      <div className="stat-cards">
+        {STAT_CARDS.map(c => {
+          const active = activeTab === c.key;
+          return (
+            <button
+              key={c.key}
+              className={`stat-card${active ? ' stat-card-active' : ''}`}
+              style={active ? { borderColor: c.border, background: c.bg } : {}}
+              onClick={() => setActiveTab(c.key)}
+            >
+              <div className="stat-card-emoji">{c.emoji}</div>
+              <div className="stat-card-count" style={active ? { color: c.color } : {}}>{tabCounts[c.key]}</div>
+              <div className="stat-card-label" style={active ? { color: c.color } : {}}>{c.label}</div>
+              {active && <div className="stat-card-bar" style={{ background: c.color }} />}
+            </button>
+          );
+        })}
       </div>
 
       {error && <div className="error-msg">{error}</div>}
 
-      {/* ── Requirements table ── */}
+      {/* ── Table ──────────────────────────────────────────── */}
       <div className="table-wrap">
-        <table>
+        <table className="req-table">
           <thead>
             <tr>
-              <th style={{ width: 42 }}>No.</th>
-              <th style={{ width: 140 }}>POC</th>
+              <th style={{ width: 48 }}>No.</th>
+              <th style={{ width: 150 }}>POC</th>
               <th>Title</th>
-              <th style={{ width: 180 }}>Use Case</th>
-              <th style={{ width: 70, textAlign: 'center' }}>Attach.</th>
-              <th style={{ width: 90 }}>Priority</th>
-              <th style={{ width: 200 }}>Jira / Status</th>
-              <th style={{ width: 100, textAlign: 'center' }}>Vote</th>
+              <th style={{ width: 210 }}>Use Case</th>
+              <th style={{ width: 95 }}>Priority</th>
+              <th style={{ width: 185 }}>Jira</th>
+              <th style={{ width: 130, textAlign: 'center' }}>Vote</th>
+              <th style={{ width: 52 }}></th>
             </tr>
           </thead>
           <tbody>
             {loading && (
-              <tr><td colSpan={8} style={{ textAlign: 'center', padding: 32 }} className="muted">Loading…</td></tr>
+              <tr>
+                <td colSpan={8} className="table-empty">
+                  <div className="table-loading">
+                    <div className="req-spinner" />
+                    Loading requirements…
+                  </div>
+                </td>
+              </tr>
             )}
             {!loading && filtered.length === 0 && (
               <tr>
-                <td colSpan={8} style={{ textAlign: 'center', padding: 48 }}>
-                  <div style={{ fontSize: 28, marginBottom: 8 }}>📭</div>
-                  <div className="muted">
-                    {search ? 'No matches found.' :
-                     activeTab !== 'all' ? `No ${activeTab} requirements.` :
-                     isCS ? 'No requirements yet — click "Raise Requirement" to add one.' :
+                <td colSpan={8} className="table-empty">
+                  <div style={{ fontSize: 36, marginBottom: 12 }}>📭</div>
+                  <div className="muted" style={{ fontSize: 14 }}>
+                    {search ? `No results for "${search}"` :
+                     activeTab !== 'all' ? `No ${activeTab} requirements yet` :
+                     isCS ? 'No requirements yet — click Raise Requirement to add one.' :
                      'No requirements yet.'}
                   </div>
                 </td>
@@ -157,22 +190,30 @@ export default function Dashboard() {
                 req={r}
                 user={user}
                 isTech={isTech}
-                onVote={() => setVoteModal(r.id)}
+                onVote={handleVote}
                 onReject={() => setRejectModal(r.id)}
                 onJira={(mode) => setJiraModal({ id: r.id, mode })}
-                onRefresh={() => load(true)}
+                onView={() => setDetailId(r.id)}
               />
             ))}
           </tbody>
         </table>
       </div>
 
-      {/* ── Modals ── */}
+      {/* ── Detail slide-over ───────────────────────────────── */}
+      {detailId && (
+        <DetailPanel
+          id={detailId}
+          user={user}
+          isTech={isTech}
+          onClose={() => setDetailId(null)}
+          onRefresh={() => load(true)}
+        />
+      )}
+
+      {/* ── Modals ─────────────────────────────────────────── */}
       {raiseOpen && (
         <RaiseModal onClose={() => setRaiseOpen(false)} onSuccess={() => { setRaiseOpen(false); load(); }} />
-      )}
-      {voteModal && (
-        <VoteModal id={voteModal} onClose={() => setVoteModal(null)} onSuccess={() => { setVoteModal(null); load(true); }} />
       )}
       {rejectModal && (
         <RejectModal id={rejectModal} onClose={() => setRejectModal(null)} onSuccess={() => { setRejectModal(null); load(true); }} />
@@ -186,108 +227,305 @@ export default function Dashboard() {
   );
 }
 
-// ─── Row component ────────────────────────────────────────
-function RequirementRow({ idx, req: r, user, isTech, onVote, onReject, onJira, onRefresh }) {
-  const isOwn     = r.submitter_id === user.id;
-  const canVote   = !isOwn && !['Rejected', 'Done'].includes(r.status);
-  const canAct    = isTech && !['Rejected', 'Done'].includes(r.status);
-  const upvoteCount = typeof r.upvotes === 'number' ? r.upvotes : (r.upvotes?.length ?? 0);
+// ─── Row ─────────────────────────────────────────────────
+function RequirementRow({ idx, req: r, user, isTech, onVote, onReject, onJira, onView }) {
+  const isOwn  = r.submitter_id === user.id;
+  const canVote = !isOwn && !['Rejected', 'Done'].includes(r.status);
+  const canAct  = isTech && !['Rejected', 'Done'].includes(r.status);
+  const voteCount = typeof r.upvotes === 'number' ? r.upvotes : (r.upvotes?.length ?? 0);
+
+  const [voteOpen, setVoteOpen] = useState(false);
+  const [customer, setCustomer] = useState('');
+  const [voting, setVoting]     = useState(false);
+  const [voted, setVoted]       = useState(false);
+  const inputRef = useRef(null);
+
+  const openVote = () => {
+    setVoteOpen(true);
+    setTimeout(() => inputRef.current?.focus(), 60);
+  };
+
+  const submitVote = async () => {
+    if (!customer.trim() || voting) return;
+    setVoting(true);
+    await onVote(r.id, customer.trim());
+    setVoted(true);
+    setVoteOpen(false);
+    setCustomer('');
+    setVoting(false);
+  };
+
+  const cancelVote = () => { setVoteOpen(false); setCustomer(''); };
 
   return (
     <tr className="req-row">
       {/* No. */}
-      <td className="muted text-sm" style={{ textAlign: 'center', fontWeight: 600 }}>{idx}</td>
+      <td className="req-no">{idx}</td>
 
       {/* POC */}
       <td>
-        <div style={{ fontWeight: 600, fontSize: 13 }}>{r.submitter_name}</div>
-        <div className="muted text-sm">{r.customer_name}</div>
+        <div className="req-poc-name">{r.submitter_name}</div>
+        <div className="req-poc-customer">{r.customer_name}</div>
       </td>
 
       {/* Title */}
       <td>
-        <Link to={`/requirements/${r.id}`} style={{ fontWeight: 600, fontSize: 13 }}>
-          {r.title}
-        </Link>
-        <div style={{ marginTop: 3 }}>
+        <button className="req-title-btn" onClick={onView}>{r.title}</button>
+        <div style={{ marginTop: 5 }}>
           <StatusBadge status={r.status} />
         </div>
       </td>
 
       {/* Use case */}
-      <td className="text-sm muted">{truncate(r.use_case)}</td>
-
-      {/* Attachment */}
-      <td style={{ textAlign: 'center' }}>
-        <span className="muted">—</span>
-      </td>
+      <td className="req-usecase">{truncate(r.use_case, 70)}</td>
 
       {/* Priority */}
       <td>
-        <span className={`prio-badge prio-${r.current_priority}`}>
-          {r.current_priority}
-        </span>
+        <span className={`prio-badge prio-${r.current_priority}`}>{r.current_priority}</span>
       </td>
 
-      {/* Jira / Status */}
+      {/* Jira */}
       <td>
         {r.jira_ticket_key ? (
           <div>
             <a href={r.jira_ticket_url} target="_blank" rel="noreferrer" className="jira-link">
               🔗 {r.jira_ticket_key}
             </a>
-            <div className="muted text-sm" style={{ marginTop: 2 }}>
-              {r.jira_assignee ? `👤 ${r.jira_assignee}` : ''}
-              {r.jira_sprint ? ` · 🏃 ${r.jira_sprint}` : ''}
-            </div>
-            {canAct && (
-              <button className="btn btn-sm btn-danger" style={{ marginTop: 6 }} onClick={onReject}>
-                Reject
-              </button>
+            {r.jira_assignee && (
+              <div className="muted text-sm" style={{ marginTop: 3 }}>👤 {r.jira_assignee}</div>
             )}
+            {canAct && (
+              <button className="btn btn-sm btn-danger" style={{ marginTop: 6 }} onClick={onReject}>✕ Reject</button>
+            )}
+          </div>
+        ) : isTech ? (
+          <div className="jira-actions">
+            <button className="btn btn-sm btn-primary" onClick={() => onJira('create')}>+ Create Jira</button>
+            <button className="btn btn-sm" onClick={() => onJira('link')}>🔗 Link Jira</button>
+            {canAct && <button className="btn btn-sm btn-danger" onClick={onReject}>✕ Reject</button>}
           </div>
         ) : (
-          <div>
-            {isTech ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
-                <button className="btn btn-sm btn-primary" onClick={() => onJira('create')}>
-                  + Create Jira
-                </button>
-                <button className="btn btn-sm" onClick={() => onJira('link')}>
-                  🔗 Link Jira
-                </button>
-                {canAct && (
-                  <button className="btn btn-sm btn-danger" onClick={onReject}>
-                    ✕ Reject
-                  </button>
-                )}
-              </div>
-            ) : (
-              <span className="muted">—</span>
-            )}
-          </div>
+          <span className="muted">—</span>
         )}
       </td>
 
       {/* Vote */}
-      <td style={{ textAlign: 'center' }}>
+      <td className="vote-cell">
         {isOwn ? (
-          <span className="muted text-sm">yours</span>
+          <span className="vote-own-tag">yours</span>
+        ) : voted ? (
+          <div className="vote-done">
+            <span className="vote-done-icon">👍</span>
+            <span className="vote-done-count">{voteCount}</span>
+          </div>
         ) : canVote ? (
-          <button className="vote-btn" onClick={onVote}>
-            👍 <span>{upvoteCount}</span>
-          </button>
+          <div className="vote-wrap">
+            {!voteOpen ? (
+              <button className="vote-btn" onClick={openVote}>
+                <span className="vote-thumb">👍</span>
+                <span className="vote-label">{voteCount > 0 ? voteCount : 'Vote'}</span>
+              </button>
+            ) : (
+              <div className="vote-inline-wrap">
+                <input
+                  ref={inputRef}
+                  className="vote-customer-input"
+                  placeholder="Customer name…"
+                  value={customer}
+                  onChange={e => setCustomer(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') submitVote();
+                    if (e.key === 'Escape') cancelVote();
+                  }}
+                />
+                <div className="vote-inline-actions">
+                  <button
+                    className="vote-confirm-btn"
+                    onClick={submitVote}
+                    disabled={!customer.trim() || voting}
+                    title="Confirm vote"
+                  >
+                    {voting ? '…' : '✓'}
+                  </button>
+                  <button className="vote-cancel-btn" onClick={cancelVote} title="Cancel">✕</button>
+                </div>
+              </div>
+            )}
+          </div>
         ) : (
-          <span className="muted text-sm">
-            {upvoteCount > 0 ? `👍 ${upvoteCount}` : '—'}
-          </span>
+          <span className="vote-static">{voteCount > 0 ? `👍 ${voteCount}` : '—'}</span>
         )}
+      </td>
+
+      {/* View */}
+      <td>
+        <button className="view-row-btn" onClick={onView} title="View details">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
+            <path d="M3 8h10M9 4l4 4-4 4"/>
+          </svg>
+        </button>
       </td>
     </tr>
   );
 }
 
-// ─── Raise Requirement Modal ──────────────────────────────
+// ─── Detail slide-over panel ──────────────────────────────
+function DetailPanel({ id, user, isTech, onClose, onRefresh }) {
+  const [data, setData]       = useState(null);
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [jiraOpen, setJiraOpen]     = useState(null);
+
+  const reload = () => api.get(`/api/requirements/${id}`).then(setData).catch(console.error);
+  useEffect(() => { reload(); }, [id]);
+
+  // Close on Escape
+  useEffect(() => {
+    const fn = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', fn);
+    return () => window.removeEventListener('keydown', fn);
+  }, [onClose]);
+
+  const canAct = isTech && data && !['Rejected', 'Done'].includes(data.status);
+
+  return (
+    <>
+      <div className="detail-overlay" onClick={onClose} />
+      <div className="detail-panel">
+        {/* Header */}
+        <div className="detail-hd">
+          <div className="detail-hd-title">{data?.title || 'Loading…'}</div>
+          <button className="detail-close-btn" onClick={onClose}>✕</button>
+        </div>
+
+        {!data && (
+          <div style={{ padding: 32, textAlign: 'center' }} className="muted">Loading…</div>
+        )}
+
+        {data && (
+          <div className="detail-body">
+            {/* Status + priority row */}
+            <div className="detail-meta-row">
+              <StatusBadge status={data.status} />
+              <span className={`prio-badge prio-${data.current_priority}`}>{data.current_priority}</span>
+              <span className="detail-category-tag">{data.category}</span>
+            </div>
+
+            {/* Raised by */}
+            <div className="detail-raised-by">
+              Raised by <strong>{data.submitter_name}</strong> · {data.created_at?.slice(0, 10)}
+            </div>
+
+            <div className="detail-divider" />
+
+            {/* Customer */}
+            <div className="detail-field">
+              <div className="detail-field-label">Customer</div>
+              <div className="detail-field-value">{data.customer_name} <span className="muted">· {data.customer_segment}</span></div>
+            </div>
+
+            {/* Description */}
+            {data.description && (
+              <div className="detail-field">
+                <div className="detail-field-label">Description</div>
+                <div className="detail-field-text">{data.description}</div>
+              </div>
+            )}
+
+            {/* Use case */}
+            {data.use_case && (
+              <div className="detail-field">
+                <div className="detail-field-label">Use Case</div>
+                <div className="detail-field-text">{data.use_case}</div>
+              </div>
+            )}
+
+            {/* Business impact */}
+            {data.business_impact && (
+              <div className="detail-field">
+                <div className="detail-field-label">Business Impact</div>
+                <div className="detail-field-text">{data.business_impact}</div>
+              </div>
+            )}
+
+            {/* Jira */}
+            {data.jira_ticket_key && (
+              <div className="detail-field">
+                <div className="detail-field-label">Jira Ticket</div>
+                <a href={data.jira_ticket_url} target="_blank" rel="noreferrer" className="jira-link">
+                  🔗 {data.jira_ticket_key}
+                </a>
+                {data.jira_assignee && <div className="muted text-sm" style={{ marginTop: 4 }}>👤 {data.jira_assignee}</div>}
+                {data.jira_sprint    && <div className="muted text-sm">🏃 {data.jira_sprint}</div>}
+              </div>
+            )}
+
+            {/* Rejection reason */}
+            {data.status === 'Rejected' && data.rejection_reason && (
+              <div className="detail-field">
+                <div className="detail-field-label" style={{ color: '#ef4444' }}>Rejection Reason</div>
+                <div className="detail-reject-reason">{data.rejection_reason}</div>
+              </div>
+            )}
+
+            <div className="detail-divider" />
+
+            {/* Votes */}
+            <div className="detail-field">
+              <div className="detail-field-label">
+                Votes
+                <span className="detail-vote-count-badge">{data.upvotes?.length ?? 0}</span>
+              </div>
+              {data.upvotes?.length === 0 && <div className="muted text-sm">No votes yet</div>}
+              {data.upvotes?.map((v, i) => (
+                <div key={i} className="detail-vote-item">
+                  <span className="detail-vote-thumb">👍</span>
+                  <span><strong>{v.user_name}</strong> · <em>{v.customer_name}</em></span>
+                </div>
+              ))}
+            </div>
+
+            {/* Tech actions */}
+            {canAct && (
+              <div className="detail-actions">
+                {!data.jira_ticket_key && (
+                  <>
+                    <button className="btn btn-primary btn-sm" onClick={() => setJiraOpen('create')}>+ Create Jira</button>
+                    <button className="btn btn-sm" onClick={() => setJiraOpen('link')}>🔗 Link Jira</button>
+                  </>
+                )}
+                <button className="btn btn-sm btn-danger" onClick={() => setRejectOpen(true)}>✕ Reject</button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {rejectOpen && (
+        <RejectModal
+          id={id}
+          onClose={() => setRejectOpen(false)}
+          onSuccess={() => { setRejectOpen(false); onClose(); onRefresh(); }}
+        />
+      )}
+      {jiraOpen === 'create' && (
+        <JiraCreateModal
+          id={id}
+          onClose={() => setJiraOpen(null)}
+          onSuccess={() => { setJiraOpen(null); reload(); onRefresh(); }}
+        />
+      )}
+      {jiraOpen === 'link' && (
+        <JiraLinkModal
+          id={id}
+          onClose={() => setJiraOpen(null)}
+          onSuccess={() => { setJiraOpen(null); reload(); onRefresh(); }}
+        />
+      )}
+    </>
+  );
+}
+
+// ─── Raise Modal ──────────────────────────────────────────
 function RaiseModal({ onClose, onSuccess }) {
   const [form, setForm] = useState({
     title: '', description: '', customer_name: '', customer_segment: 'Mid-Market',
@@ -364,42 +602,6 @@ function RaiseModal({ onClose, onSuccess }) {
   );
 }
 
-// ─── Vote Modal ───────────────────────────────────────────
-function VoteModal({ id, onClose, onSuccess }) {
-  const [customer, setCustomer] = useState('');
-  const [error, setError]       = useState(null);
-  const [busy, setBusy]         = useState(false);
-
-  const submit = async () => {
-    if (!customer.trim()) return;
-    setBusy(true); setError(null);
-    try {
-      await api.post(`/api/requirements/${id}/upvote`, { customer_name: customer });
-      onSuccess();
-    } catch (e) { setError(e.message); } finally { setBusy(false); }
-  };
-
-  return (
-    <Modal title="Vote for this requirement" onClose={onClose} footer={
-      <>
-        <button className="btn" onClick={onClose}>Cancel</button>
-        <button className="btn btn-primary" onClick={submit} disabled={!customer.trim() || busy}>
-          {busy ? 'Voting…' : '👍 Vote'}
-        </button>
-      </>
-    }>
-      <p className="muted text-sm" style={{ marginBottom: 14 }}>
-        Which customer are you voting on behalf of?
-      </p>
-      <div className="field">
-        <label>Customer name</label>
-        <input autoFocus placeholder="e.g. Acme Corp" value={customer} onChange={e => setCustomer(e.target.value)} />
-      </div>
-      {error && <div className="error-msg">{error}</div>}
-    </Modal>
-  );
-}
-
 // ─── Reject Modal ─────────────────────────────────────────
 function RejectModal({ id, onClose, onSuccess }) {
   const [reason, setReason] = useState('');
@@ -440,8 +642,8 @@ function JiraCreateModal({ id, onClose, onSuccess }) {
   const [projects, setProjects] = useState([]);
   const [projectKey, setProjectKey] = useState('');
   const [issueType, setIssueType]   = useState('Task');
-  const [error, setError]  = useState(null);
-  const [busy, setBusy]    = useState(false);
+  const [error, setError] = useState(null);
+  const [busy, setBusy]   = useState(false);
 
   useEffect(() => {
     api.get('/api/users/jira-projects').then(ps => {
